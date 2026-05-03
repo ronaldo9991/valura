@@ -195,17 +195,79 @@ export interface MarketHistory {
   changePct: number;
 }
 
+export interface ChronosPosition {
+  symbol: string;
+  dollarAmount: number;
+}
+
+export interface ChronosRequest {
+  /** YYYY-MM-DD start date for the back-test */
+  startDate: string;
+  positions: ChronosPosition[];
+  /** Include S&P 500 (SPY) benchmark line */
+  includeBenchmark?: boolean;
+}
+
+export interface ChronosPositionResult {
+  symbol: string;
+  name: string;
+  dollarAmount: number;
+  startPrice: number;
+  endPrice: number;
+  shares: number;
+  endValue: number;
+  returnDollar: number;
+  returnPct: number;
+}
+
+export interface ChronosTimelinePoint {
+  date: string;
+  portfolioValue: number;
+  benchmarkValue?: number;
+}
+
+export interface ChronosResult {
+  startDate: string;
+  endDate: string;
+  totalInvested: number;
+  currentValue: number;
+  returnDollar: number;
+  returnPct: number;
+  cagrPct: number;
+  benchmarkReturnPct?: number;
+  positions: ChronosPositionResult[];
+  timeline: ChronosTimelinePoint[];
+  /** Plain-English summary of the back-test. */
+  explanation: string;
+}
+
 export interface MarketMovers {
   gainers: MarketQuote[];
   losers: MarketQuote[];
   lastUpdated: string;
 }
 
+/**
+ * Persona override for the AI co-investor.
+ */
+export type ChatRequestAgentMode =
+  (typeof ChatRequestAgentMode)[keyof typeof ChatRequestAgentMode];
+
+export const ChatRequestAgentMode = {
+  normal: "normal",
+  coach: "coach",
+  analyst: "analyst",
+  risk_officer: "risk_officer",
+  strategist: "strategist",
+} as const;
+
 export interface ChatRequest {
   userId: string;
   message: string;
   conversationId?: string;
   portfolioContext?: boolean;
+  /** Persona override for the AI co-investor. */
+  agentMode?: ChatRequestAgentMode;
 }
 
 export interface Conversation {

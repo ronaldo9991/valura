@@ -6,6 +6,8 @@ import { runPortfolioHealthAgent, type HoldingInput, type UserContext } from "./
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+export type AgentMode = "normal" | "coach" | "analyst" | "risk_officer" | "strategist";
+
 export interface PipelineInput {
   userId: string;
   message: string;
@@ -14,7 +16,31 @@ export interface PipelineInput {
   userContext?: UserContext;
   holdings?: HoldingInput[];
   cashBalance?: number;
+  agentMode?: AgentMode;
 }
+
+const MODE_PROMPTS: Record<AgentMode, { label: string; persona: string }> = {
+  normal: {
+    label: "Co-Investor",
+    persona: `You are the AENS X VALURA AI co-investor — balanced, professional, and clear. You blend market knowledge with practical guidance. Default tone for general questions.`,
+  },
+  coach: {
+    label: "Coach",
+    persona: `You are the VALURA Beginner Coach. Speak like a patient mentor talking to a curious novice. Use simple analogies (e.g. "owning Apple is like owning a tiny slice of the iPhone factory"). Avoid jargon — when you must use a term, define it inline. Be encouraging. Keep paragraphs short.`,
+  },
+  analyst: {
+    label: "Analyst",
+    persona: `You are the VALURA Senior Analyst. Provide deep, data-driven analysis: P/E ratios, free cash flow, margins, growth rates, valuation models, sector dynamics. Use precise financial vocabulary. Cite numbers when available. Conclude with a balanced bull/bear case.`,
+  },
+  risk_officer: {
+    label: "Risk Officer",
+    persona: `You are the VALURA Chief Risk Officer. Lead with risks: drawdowns, volatility, concentration, correlation, liquidity, geopolitical/regulatory exposure. Always quantify worst-case scenarios. Recommend hedges and position sizing. Conservative-leaning. Never minimize downside.`,
+  },
+  strategist: {
+    label: "Strategist",
+    persona: `You are the VALURA Long-Term Strategist. Focus on multi-year asset allocation, rebalancing cadence, tax efficiency, factor tilts (value/growth/quality/momentum), and lifecycle planning. Think in 5-10 year horizons. Tie advice back to the user's stated goal and risk profile.`,
+  },
+};
 
 export interface SSEEvent {
   type: "metadata" | "content" | "done" | "error";
@@ -52,21 +78,37 @@ export async function runPipeline(
       return;
     }
 
-    const classification = await classifyIntent(input.message, input.priorMessages ?? []);
+    // If user explicitly picked a mode (other than normal), bypass the intent classifier entirely.
+    const explicitMode = input.agentMode && input.agentMode !== "normal" ? input.agentMode : null;
 
-    write(
-      formatSSE({
-        type: "metadata",
-        metadata: {
-          intent: classification.intent,
-          agent: classification.agent,
-          safetyVerdict: classification.safetyVerdict,
-          entities: classification.entities as Record<string, unknown>,
-        },
-      })
-    );
-
-    await routeToAgent(classification.agent, input, write);
+    if (explicitMode) {
+      write(
+        formatSSE({
+          type: "metadata",
+          metadata: {
+            intent: explicitMode,
+            agent: MODE_PROMPTS[explicitMode].label,
+            safetyVerdict: "pass",
+            entities: {},
+          },
+        })
+      );
+      await handlePersonaChat(explicitMode, input, write);
+    } else {
+      const classification = await classifyIntent(input.message, input.priorMessages ?? []);
+      write(
+        formatSSE({
+          type: "metadata",
+          metadata: {
+            intent: classification.intent,
+            agent: classification.agent,
+            safetyVerdict: classification.safetyVerdict,
+            entities: classification.entities as Record<string, unknown>,
+          },
+        })
+      );
+      await routeToAgent(classification.agent, input, write);
+    }
     write(formatSSE({ type: "done" }));
   } catch (err) {
     logger.error({ err }, "Pipeline error");
@@ -114,6 +156,45 @@ async function handlePortfolioHealth(
     input.cashBalance ?? 0,
     (chunk) => write(formatSSE({ type: "content", content: chunk }))
   );
+}
+
+async function handlePersonaChat(
+  mode: AgentMode,
+  input: PipelineInput,
+  write: (chunk: string) => void
+): Promise<void> {
+  const persona = MODE_PROMPTS[mode].persona;
+  const contextInfo = input.userContext
+    ? `\n\nUser context: ${input.userContext.name}, Risk profile: ${input.userContext.riskProfile}, Goal: ${input.userContext.investmentGoal}, Currency: ${input.userContext.currency}`
+    : "";
+  const holdingsInfo = input.holdings && input.holdings.length > 0
+    ? `\nCurrent holdings: ${input.holdings.map((h) => `${h.ticker} (${h.shares} shares @ $${h.avgCostBasis})`).join(", ")}.`
+    : "";
+  const messages: OpenAI.ChatCompletionMessageParam[] = [
+    { role: "system", content: persona + contextInfo + holdingsInfo },
+    ...(input.priorMessages ?? []).slice(-8).map((m) => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    })),
+    { role: "user", content: input.message },
+  ];
+
+  try {
+    const stream = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      stream: true,
+      max_tokens: 800,
+      temperature: mode === "coach" ? 0.7 : mode === "risk_officer" ? 0.4 : 0.6,
+    });
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content ?? "";
+      if (content) write(formatSSE({ type: "content", content }));
+    }
+  } catch (err) {
+    logger.error({ err, mode }, "Persona stream failed");
+    write(formatSSE({ type: "error", error: `The ${MODE_PROMPTS[mode].label} agent encountered an error.` }));
+  }
 }
 
 async function handleGeneralChat(

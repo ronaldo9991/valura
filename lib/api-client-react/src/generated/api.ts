@@ -19,6 +19,8 @@ import type {
 import type {
   BatchQuotesRequest,
   ChatRequest,
+  ChronosRequest,
+  ChronosResult,
   ErrorResponse,
   GetBatchQuotes200,
   GetConversations200,
@@ -908,6 +910,92 @@ export function useGetMarketHistory<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary CHRONOS time-travel simulation — back-test a portfolio from a past date to today
+ */
+export const getSimulateChronosUrl = () => {
+  return `/api/chronos/simulate`;
+};
+
+export const simulateChronos = async (
+  chronosRequest: ChronosRequest,
+  options?: RequestInit,
+): Promise<ChronosResult> => {
+  return customFetch<ChronosResult>(getSimulateChronosUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(chronosRequest),
+  });
+};
+
+export const getSimulateChronosMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof simulateChronos>>,
+    TError,
+    { data: BodyType<ChronosRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof simulateChronos>>,
+  TError,
+  { data: BodyType<ChronosRequest> },
+  TContext
+> => {
+  const mutationKey = ["simulateChronos"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof simulateChronos>>,
+    { data: BodyType<ChronosRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return simulateChronos(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SimulateChronosMutationResult = NonNullable<
+  Awaited<ReturnType<typeof simulateChronos>>
+>;
+export type SimulateChronosMutationBody = BodyType<ChronosRequest>;
+export type SimulateChronosMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary CHRONOS time-travel simulation — back-test a portfolio from a past date to today
+ */
+export const useSimulateChronos = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof simulateChronos>>,
+    TError,
+    { data: BodyType<ChronosRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof simulateChronos>>,
+  TError,
+  { data: BodyType<ChronosRequest> },
+  TContext
+> => {
+  return useMutation(getSimulateChronosMutationOptions(options));
+};
 
 /**
  * @summary Get top market movers (gainers and losers)

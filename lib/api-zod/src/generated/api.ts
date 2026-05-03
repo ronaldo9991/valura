@@ -255,6 +255,55 @@ export const GetMarketHistoryResponse = zod.object({
 });
 
 /**
+ * @summary CHRONOS time-travel simulation — back-test a portfolio from a past date to today
+ */
+export const SimulateChronosBody = zod.object({
+  startDate: zod.string().describe("YYYY-MM-DD start date for the back-test"),
+  positions: zod.array(
+    zod.object({
+      symbol: zod.string(),
+      dollarAmount: zod.number(),
+    }),
+  ),
+  includeBenchmark: zod
+    .boolean()
+    .optional()
+    .describe("Include S&P 500 (SPY) benchmark line"),
+});
+
+export const SimulateChronosResponse = zod.object({
+  startDate: zod.string(),
+  endDate: zod.string(),
+  totalInvested: zod.number(),
+  currentValue: zod.number(),
+  returnDollar: zod.number(),
+  returnPct: zod.number(),
+  cagrPct: zod.number(),
+  benchmarkReturnPct: zod.number().optional(),
+  positions: zod.array(
+    zod.object({
+      symbol: zod.string(),
+      name: zod.string(),
+      dollarAmount: zod.number(),
+      startPrice: zod.number(),
+      endPrice: zod.number(),
+      shares: zod.number(),
+      endValue: zod.number(),
+      returnDollar: zod.number(),
+      returnPct: zod.number(),
+    }),
+  ),
+  timeline: zod.array(
+    zod.object({
+      date: zod.string(),
+      portfolioValue: zod.number(),
+      benchmarkValue: zod.number().optional(),
+    }),
+  ),
+  explanation: zod.string().describe("Plain-English summary of the back-test."),
+});
+
+/**
  * @summary Get top market movers (gainers and losers)
  */
 export const GetMarketMoversResponse = zod.object({
@@ -301,6 +350,10 @@ export const AiChatBody = zod.object({
   message: zod.string(),
   conversationId: zod.string().optional(),
   portfolioContext: zod.boolean().optional(),
+  agentMode: zod
+    .enum(["normal", "coach", "analyst", "risk_officer", "strategist"])
+    .optional()
+    .describe("Persona override for the AI co-investor."),
 });
 
 /**

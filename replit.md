@@ -53,5 +53,21 @@ Futuristic AI wealth platform. True black + metallic gold theme, light/dark togg
 - `GET /market/history/:symbol?range=1d|5d|1mo|3mo|6mo|1y|5y` → yahoo-finance2 `chart()`. Range validated at route layer (400 on invalid).
 - OpenAPI ops: `searchSymbols`, `getMarketHistory`. Schemas: `SymbolSearchResult`, `ChartPoint`, `MarketHistory`.
 
+### Demo users
+- 10 demo users seeded directly in Postgres (no seed file): `user_001..user_010` — Marcus, Sarah, Hiroshi, Elena, David, Lina, Omar, Maya, Tomas, Yuki. Mix of risk profiles and sectors. Each has holdings + a unique cash_balances row.
+
+### AI Agent Modes (5 personas)
+- `ChatRequest.agentMode`: `"normal" | "coach" | "analyst" | "risk_officer" | "strategist"`. Picker UI lives just above the chat input in `ai-chat.tsx`.
+- When `agentMode !== "normal"`, the pipeline **fully bypasses** the intent classifier (saves a model call) and routes straight to `handlePersonaChat()` in `ai-pipeline.ts`. Persona prompts also include user context + holdings.
+- Persona label (e.g. "Risk Officer") is what shows in the assistant message badge.
+- Hook signature: `sendMessage(userId, content, conversationId?, agentMode?)`.
+
+### CHRONOS Mode (time-travel sandbox)
+- New page `/chronos` (gated by `ProtectedChronos`). Date picker (with presets like "Pre-COVID", "ChatGPT launch"), `StockSearch`-driven position builder, sample portfolios ("All-in NVDA", "FAANG Classic", "Magnificent 7", "Just buy the index"), recharts AreaChart of portfolio vs SPY benchmark, per-position breakdown with trophy on the winner, plain-English `explanation` paragraph.
+- Animated **Mode Switcher** (`components/mode-switcher.tsx`) sits in the dashboard top-right and on `/chronos` header — uses framer-motion `layoutId="mode-pill"` for the sliding gold pill animation.
+- Backend: `POST /chronos/simulate` → `lib/chronos.ts`. Uses yahoo-finance2 `chart()` with `period1=startDate, interval="1d"` per symbol + SPY. Position values are forward-filled across the union of all dates so the timeline matches headline totals; **shares are summed when duplicate tickers are submitted**. Route hardens input by coercing `dollarAmount` to a finite positive number and rejecting otherwise (prevents string-concat bugs in totals).
+- OpenAPI: `simulateChronos` op + `ChronosPosition`, `ChronosRequest`, `ChronosPositionResult`, `ChronosTimelinePoint`, `ChronosResult` schemas.
+
 ### Notes
-- `lib/api-zod/src/index.ts` only re-exports `./generated/api` (Zod schemas). Re-exporting `./generated/types` causes name collisions with parameterized ops (e.g. `GetMarketHistoryParams`).
+- `lib/api-zod/src/index.ts` only re-exports `./generated/api` (Zod schemas). Re-exporting `./generated/types` causes name collisions with parameterized ops (e.g. `GetMarketHistoryParams`). **Orval `clean: true` regenerates this barrel on every codegen — must be re-applied after each `pnpm --filter @workspace/api-spec run codegen`.**
+- SSE error events use `{ type: "error", error: "..." }` (not `message`); UI hook reads both for safety.

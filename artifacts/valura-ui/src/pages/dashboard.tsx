@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ModeToggle } from "@/components/mode-toggle";
+import { ModeSwitcher } from "@/components/mode-switcher";
 import { HoldingsTable } from "@/components/dashboard/holdings-table";
 import { AiChat, type AiChatHandle } from "@/components/dashboard/ai-chat";
 import { StockSearch } from "@/components/dashboard/stock-search";
@@ -184,7 +185,8 @@ export default function Dashboard() {
             <div className="flex items-center gap-4 flex-1 min-w-0">
               <StockSearch onPick={(s) => setDrawerSymbol(s)} />
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-3 shrink-0">
+              <ModeSwitcher />
               <Button variant="ghost" size="icon" onClick={() => setAiOpen(!aiOpen)} className="rounded-none hover:bg-white/5" data-testid="toggle-ai-sidebar">
                 {aiOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
               </Button>

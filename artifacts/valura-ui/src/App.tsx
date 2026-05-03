@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
+import ChronosPage from "@/pages/chronos";
 import Login from "@/pages/login";
 import { getStoredUserId } from "@/lib/auth";
 
@@ -21,12 +22,22 @@ function ProtectedDashboard() {
   return <Dashboard />;
 }
 
+function ProtectedChronos() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    if (!getStoredUserId()) setLocation("/login");
+  }, [setLocation]);
+  if (!getStoredUserId()) return null;
+  return <ChronosPage />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/dashboard" component={ProtectedDashboard} />
+      <Route path="/chronos" component={ProtectedChronos} />
       <Route component={NotFound} />
     </Switch>
   );

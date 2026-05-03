@@ -2,12 +2,22 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } f
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, Plus, Clock, TerminalSquare, Sparkles, Square } from "lucide-react";
+import { ArrowUpRight, Plus, Clock, TerminalSquare, Sparkles, Square, GraduationCap, LineChart, ShieldAlert, Compass, Bot, ChevronDown } from "lucide-react";
 import { useAiStream } from "@/hooks/use-ai-stream";
 import { useGetConversations, useGetMessages, getGetConversationsQueryKey, getGetMessagesQueryKey } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 
 export type AiChatHandle = { send: (text: string) => void };
+
+type AgentMode = "normal" | "coach" | "analyst" | "risk_officer" | "strategist";
+
+const AGENT_MODES: { value: AgentMode; label: string; desc: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: "normal", label: "Co-Investor", desc: "Balanced, all-purpose", Icon: Bot },
+  { value: "coach", label: "Coach", desc: "Plain English, beginner-friendly", Icon: GraduationCap },
+  { value: "analyst", label: "Analyst", desc: "Deep, data-driven analysis", Icon: LineChart },
+  { value: "risk_officer", label: "Risk Officer", desc: "Conservative, risks first", Icon: ShieldAlert },
+  { value: "strategist", label: "Strategist", desc: "Long-term allocation focus", Icon: Compass },
+];
 
 type Props = {
   userId: string;
@@ -24,6 +34,8 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
 
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [agentMode, setAgentMode] = useState<AgentMode>("normal");
+  const [modeOpen, setModeOpen] = useState(false);
 
   const { data: convos } = useGetConversations(userId, { query: { enabled: !!userId, queryKey: getGetConversationsQueryKey(userId) } });
   const { data: pastMessages } = useGetMessages(userId, activeConvoId || "", {
@@ -46,28 +58,31 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
   useImperativeHandle(ref, () => ({
     send: (text: string) => {
       if (!text.trim() || isStreaming) return;
-      sendMessage(userId, text, activeConvoId || undefined);
+      sendMessage(userId, text, activeConvoId || undefined, agentMode);
     }
-  }), [userId, activeConvoId, sendMessage, isStreaming]);
+  }), [userId, activeConvoId, sendMessage, isStreaming, agentMode]);
 
   // Consume external pending prompt deterministically once the chat is mounted and idle.
   useEffect(() => {
     if (!pendingPrompt || isStreaming) return;
-    sendMessage(userId, pendingPrompt, activeConvoId || undefined);
+    sendMessage(userId, pendingPrompt, activeConvoId || undefined, agentMode);
     onPendingPromptConsumed?.();
-  }, [pendingPrompt, isStreaming, userId, activeConvoId, sendMessage, onPendingPromptConsumed]);
+  }, [pendingPrompt, isStreaming, userId, activeConvoId, sendMessage, onPendingPromptConsumed, agentMode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
-    sendMessage(userId, input, activeConvoId || undefined);
+    sendMessage(userId, input, activeConvoId || undefined, agentMode);
     setInput("");
   };
 
   const handleChip = (text: string) => {
     if (isStreaming) return;
-    sendMessage(userId, text, activeConvoId || undefined);
+    sendMessage(userId, text, activeConvoId || undefined, agentMode);
   };
+
+  const activeMode = AGENT_MODES.find((m) => m.value === agentMode) ?? AGENT_MODES[0];
+  const ActiveIcon = activeMode.Icon;
 
   const newChat = () => { setActiveConvoId(null); setMessages([]); setShowHistory(false); };
 
@@ -183,6 +198,52 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
             ))
           )}
         </div>
+      </div>
+
+      {/* Agent Mode Picker */}
+      <div className="px-4 py-2.5 bg-background/60 border-t border-border shrink-0 z-10 relative">
+        <button
+          onClick={() => setModeOpen(!modeOpen)}
+          className="w-full flex items-center justify-between gap-2 p-2 border border-border hover:border-gold-hairline bg-card transition-colors group"
+          data-testid="agent-mode-picker"
+        >
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 shrink-0 flex items-center justify-center bg-primary/10 border border-gold-hairline">
+              <ActiveIcon className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div className="text-left min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-wider truncate">{activeMode.label}</div>
+              <div className="text-[9px] font-mono text-muted-foreground truncate">{activeMode.desc}</div>
+            </div>
+          </div>
+          <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${modeOpen ? "rotate-180" : ""}`} />
+        </button>
+        {modeOpen && (
+          <div className="absolute bottom-full left-4 right-4 mb-1 bg-card border border-gold-hairline shadow-2xl z-50 max-h-72 overflow-y-auto">
+            {AGENT_MODES.map((m) => {
+              const I = m.Icon;
+              const active = m.value === agentMode;
+              return (
+                <button
+                  key={m.value}
+                  onClick={() => { setAgentMode(m.value); setModeOpen(false); }}
+                  className={`w-full text-left p-2.5 flex items-center gap-2.5 border-b border-border/50 last:border-b-0 transition-colors ${
+                    active ? "bg-primary/10" : "hover:bg-white/5"
+                  }`}
+                  data-testid={`agent-mode-${m.value}`}
+                >
+                  <div className={`w-7 h-7 shrink-0 flex items-center justify-center border ${active ? "border-primary bg-primary/10" : "border-border bg-background"}`}>
+                    <I className={`w-3.5 h-3.5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className={`text-[11px] font-bold uppercase tracking-wider ${active ? "text-primary" : "text-foreground"}`}>{m.label}</div>
+                    <div className="text-[9px] font-mono text-muted-foreground">{m.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Input */}

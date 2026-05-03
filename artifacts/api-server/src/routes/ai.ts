@@ -28,7 +28,7 @@ router.post("/ai/chat", async (req, res) => {
       return;
     }
 
-    const { userId, message, conversationId, portfolioContext } = parsed.data;
+    const { userId, message, conversationId, portfolioContext, agentMode } = parsed.data;
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
     if (!user) {
@@ -89,6 +89,7 @@ router.post("/ai/chat", async (req, res) => {
           currency: h.currency,
         })),
         cashBalance: cashRow[0] ? Number(cashRow[0].balance) : 0,
+        agentMode: agentMode ?? undefined,
       },
       (chunk) => {
         write(chunk);

@@ -5,10 +5,13 @@
  * AENS X VALURA — AI Wealth Management Platform API
  * OpenAPI spec version: 0.1.0
  */
+import type { ChatRequestAgentMode } from "./chatRequestAgentMode";
 
 export interface ChatRequest {
   userId: string;
   message: string;
   conversationId?: string;
   portfolioContext?: boolean;
+  /** Persona override for the AI co-investor. */
+  agentMode?: ChatRequestAgentMode;
 }

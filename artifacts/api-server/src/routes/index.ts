@@ -5,6 +5,7 @@ import portfolioRouter from "./portfolio";
 import marketRouter from "./market";
 import conversationsRouter from "./conversations";
 import aiRouter from "./ai";
+import chronosRouter from "./chronos";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(portfolioRouter);
 router.use(marketRouter);
 router.use(conversationsRouter);
 router.use(aiRouter);
+router.use(chronosRouter);
 
 export default router;

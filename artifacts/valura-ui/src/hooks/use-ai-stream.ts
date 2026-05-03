@@ -15,7 +15,7 @@ export function useAiStream() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
-    async (userId: string, content: string, conversationId?: string) => {
+    async (userId: string, content: string, conversationId?: string, agentMode?: string) => {
       if (!content.trim()) return;
 
       const userMessage: AiMessage = {
@@ -55,6 +55,7 @@ export function useAiStream() {
             message: content,
             conversationId,
             portfolioContext: true,
+            agentMode: agentMode ?? "normal",
           }),
           signal: abortControllerRef.current.signal,
         });
@@ -95,7 +96,7 @@ export function useAiStream() {
             } else if (data.type === "metadata" && data.metadata) {
               metadata = { ...metadata, ...data.metadata };
             } else if (data.type === "error") {
-              assistantContent += `\n\n_Error: ${data.message || "stream failed"}_`;
+              assistantContent += `\n\n_Error: ${data.error || data.message || "stream failed"}_`;
             }
             flushUpdate();
           } catch (e) {
