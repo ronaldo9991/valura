@@ -8,7 +8,7 @@ import { useGetBatchQuotes, useAiChat } from "@workspace/api-client-react";
 import type { Portfolio, Holding } from "@workspace/api-client-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export function HoldingsTable({ portfolio, isLoading, userId }: { portfolio?: Portfolio, isLoading: boolean, userId: string }) {
+export function HoldingsTable({ portfolio, isLoading, userId, onPickSymbol }: { portfolio?: Portfolio, isLoading: boolean, userId: string, onPickSymbol?: (s: string) => void }) {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [explanations, setExpl] = useState<Record<string, string>>({});
   const [isExplaining, setIsExplaining] = useState<string | null>(null);
@@ -89,7 +89,13 @@ export function HoldingsTable({ portfolio, isLoading, userId }: { portfolio?: Po
                         {holding.ticker.substring(0,3)}
                       </div>
                       <div>
-                        <div className="font-bold text-foreground">{holding.ticker}</div>
+                        <button
+                          className="font-bold text-foreground hover:text-primary transition-colors"
+                          onClick={(e) => { e.stopPropagation(); onPickSymbol?.(holding.ticker); }}
+                          data-testid={`holding-symbol-${holding.ticker}`}
+                        >
+                          {holding.ticker}
+                        </button>
                         <div className="text-[10px] text-muted-foreground uppercase truncate max-w-[120px]">{holding.name}</div>
                       </div>
                     </div>

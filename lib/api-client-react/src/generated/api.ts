@@ -22,14 +22,18 @@ import type {
   ErrorResponse,
   GetBatchQuotes200,
   GetConversations200,
+  GetMarketHistoryParams,
   GetMessages200,
   HealthStatus,
   ListUsers200,
+  MarketHistory,
   MarketMovers,
   MarketQuote,
   Portfolio,
   PortfolioHealthReport,
   PortfolioSummary,
+  SearchSymbols200,
+  SearchSymbolsParams,
   UserProfile,
 } from "./api.schemas";
 
@@ -697,6 +701,213 @@ export const useGetBatchQuotes = <
 > => {
   return useMutation(getGetBatchQuotesMutationOptions(options));
 };
+
+/**
+ * @summary Search for stocks/ETFs by name or ticker
+ */
+export const getSearchSymbolsUrl = (params: SearchSymbolsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/market/search?${stringifiedParams}`
+    : `/api/market/search`;
+};
+
+export const searchSymbols = async (
+  params: SearchSymbolsParams,
+  options?: RequestInit,
+): Promise<SearchSymbols200> => {
+  return customFetch<SearchSymbols200>(getSearchSymbolsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSearchSymbolsQueryKey = (params?: SearchSymbolsParams) => {
+  return [`/api/market/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getSearchSymbolsQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchSymbols>>,
+  TError = ErrorType<unknown>,
+>(
+  params: SearchSymbolsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchSymbols>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSearchSymbolsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof searchSymbols>>> = ({
+    signal,
+  }) => searchSymbols(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof searchSymbols>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SearchSymbolsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchSymbols>>
+>;
+export type SearchSymbolsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Search for stocks/ETFs by name or ticker
+ */
+
+export function useSearchSymbols<
+  TData = Awaited<ReturnType<typeof searchSymbols>>,
+  TError = ErrorType<unknown>,
+>(
+  params: SearchSymbolsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchSymbols>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSearchSymbolsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get historical price chart for a symbol
+ */
+export const getGetMarketHistoryUrl = (
+  symbol: string,
+  params?: GetMarketHistoryParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/market/history/${symbol}?${stringifiedParams}`
+    : `/api/market/history/${symbol}`;
+};
+
+export const getMarketHistory = async (
+  symbol: string,
+  params?: GetMarketHistoryParams,
+  options?: RequestInit,
+): Promise<MarketHistory> => {
+  return customFetch<MarketHistory>(getGetMarketHistoryUrl(symbol, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMarketHistoryQueryKey = (
+  symbol: string,
+  params?: GetMarketHistoryParams,
+) => {
+  return [
+    `/api/market/history/${symbol}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetMarketHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMarketHistory>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  symbol: string,
+  params?: GetMarketHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarketHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMarketHistoryQueryKey(symbol, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMarketHistory>>
+  > = ({ signal }) =>
+    getMarketHistory(symbol, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!symbol,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMarketHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMarketHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMarketHistory>>
+>;
+export type GetMarketHistoryQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get historical price chart for a symbol
+ */
+
+export function useGetMarketHistory<
+  TData = Awaited<ReturnType<typeof getMarketHistory>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  symbol: string,
+  params?: GetMarketHistoryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMarketHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMarketHistoryQueryOptions(symbol, params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary Get top market movers (gainers and losers)

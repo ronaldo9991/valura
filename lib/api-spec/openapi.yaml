@@ -194,6 +194,64 @@ paths:
                 required:
                   - quotes
 
+  /market/search:
+    get:
+      operationId: searchSymbols
+      tags: [market]
+      summary: Search for stocks/ETFs by name or ticker
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SymbolSearchResult"
+                required:
+                  - results
+
+  /market/history/{symbol}:
+    get:
+      operationId: getMarketHistory
+      tags: [market]
+      summary: Get historical price chart for a symbol
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: range
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["1d", "5d", "1mo", "3mo", "6mo", "1y", "5y"]
+            default: "1mo"
+      responses:
+        "200":
+          description: Historical price data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketHistory"
+        "404":
+          description: No data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /market/movers:
     get:
       operationId: getMarketMovers
@@ -599,6 +657,81 @@ components:
         - changePct
         - currency
         - lastUpdated
+
+    SymbolSearchResult:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        exchange:
+          type: string
+        type:
+          type: string
+        sector:
+          type: string
+        industry:
+          type: string
+      required:
+        - symbol
+        - name
+        - exchange
+        - type
+
+    ChartPoint:
+      type: object
+      properties:
+        date:
+          type: string
+        close:
+          type: number
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        volume:
+          type: number
+      required:
+        - date
+        - close
+        - open
+        - high
+        - low
+        - volume
+
+    MarketHistory:
+      type: object
+      properties:
+        symbol:
+          type: string
+        range:
+          type: string
+        interval:
+          type: string
+        currency:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChartPoint"
+        startPrice:
+          type: number
+        endPrice:
+          type: number
+        changePct:
+          type: number
+      required:
+        - symbol
+        - range
+        - interval
+        - currency
+        - points
+        - startPrice
+        - endPrice
+        - changePct
 
     MarketMovers:
       type: object

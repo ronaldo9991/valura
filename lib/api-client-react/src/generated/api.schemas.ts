@@ -166,6 +166,35 @@ export interface MarketQuote {
   lastUpdated: string;
 }
 
+export interface SymbolSearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  type: string;
+  sector?: string;
+  industry?: string;
+}
+
+export interface ChartPoint {
+  date: string;
+  close: number;
+  open: number;
+  high: number;
+  low: number;
+  volume: number;
+}
+
+export interface MarketHistory {
+  symbol: string;
+  range: string;
+  interval: string;
+  currency: string;
+  points: ChartPoint[];
+  startPrice: number;
+  endPrice: number;
+  changePct: number;
+}
+
 export interface MarketMovers {
   gainers: MarketQuote[];
   losers: MarketQuote[];
@@ -212,6 +241,31 @@ export type ListUsers200 = {
 export type GetBatchQuotes200 = {
   quotes: MarketQuote[];
 };
+
+export type SearchSymbolsParams = {
+  q: string;
+};
+
+export type SearchSymbols200 = {
+  results: SymbolSearchResult[];
+};
+
+export type GetMarketHistoryParams = {
+  range?: GetMarketHistoryRange;
+};
+
+export type GetMarketHistoryRange =
+  (typeof GetMarketHistoryRange)[keyof typeof GetMarketHistoryRange];
+
+export const GetMarketHistoryRange = {
+  "1d": "1d",
+  "5d": "5d",
+  "1mo": "1mo",
+  "3mo": "3mo",
+  "6mo": "6mo",
+  "1y": "1y",
+  "5y": "5y",
+} as const;
 
 export type GetConversations200 = {
   conversations: Conversation[];

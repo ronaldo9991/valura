@@ -64,6 +64,104 @@ export async function getBenchmarkReturn(_benchmark: string = "^GSPC"): Promise<
   }
 }
 
+export interface SearchResult {
+  symbol: string;
+  name: string;
+  exchange: string;
+  type: string;
+  sector?: string;
+  industry?: string;
+}
+
+export async function searchSymbols(query: string): Promise<SearchResult[]> {
+  if (!query.trim()) return [];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const r: any = await yf.search(query, { quotesCount: 10, newsCount: 0 });
+    const quotes: any[] = r?.quotes ?? [];
+    return quotes
+      .filter((q) => q?.symbol && (q.quoteType === "EQUITY" || q.quoteType === "ETF"))
+      .map((q) => ({
+        symbol: q.symbol,
+        name: q.longname ?? q.shortname ?? q.symbol,
+        exchange: q.exchDisp ?? q.exchange ?? "",
+        type: q.quoteType ?? "EQUITY",
+        sector: q.sectorDisp ?? q.sector ?? undefined,
+        industry: q.industryDisp ?? q.industry ?? undefined,
+      }))
+      .slice(0, 8);
+  } catch (err) {
+    logger.warn({ query, err }, "Failed to search symbols");
+    return [];
+  }
+}
+
+export interface ChartPoint {
+  date: string;
+  close: number;
+  open: number;
+  high: number;
+  low: number;
+  volume: number;
+}
+
+export interface HistoryResult {
+  symbol: string;
+  range: string;
+  interval: string;
+  currency: string;
+  points: ChartPoint[];
+  startPrice: number;
+  endPrice: number;
+  changePct: number;
+}
+
+const RANGE_CONFIG: Record<string, { ms: number; interval: string }> = {
+  "1d": { ms: 1 * 24 * 60 * 60 * 1000, interval: "5m" },
+  "5d": { ms: 5 * 24 * 60 * 60 * 1000, interval: "30m" },
+  "1mo": { ms: 30 * 24 * 60 * 60 * 1000, interval: "1d" },
+  "3mo": { ms: 90 * 24 * 60 * 60 * 1000, interval: "1d" },
+  "6mo": { ms: 180 * 24 * 60 * 60 * 1000, interval: "1d" },
+  "1y": { ms: 365 * 24 * 60 * 60 * 1000, interval: "1d" },
+  "5y": { ms: 5 * 365 * 24 * 60 * 60 * 1000, interval: "1wk" },
+};
+
+export async function getHistory(symbol: string, range: string = "1mo"): Promise<HistoryResult | null> {
+  const cfg = RANGE_CONFIG[range] ?? RANGE_CONFIG["1mo"];
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const c: any = await yf.chart(symbol, {
+      period1: new Date(Date.now() - cfg.ms),
+      interval: cfg.interval as any,
+    });
+    const quotes: any[] = (c?.quotes ?? []).filter((q: any) => q?.close != null);
+    if (quotes.length === 0) return null;
+    const points: ChartPoint[] = quotes.map((q) => ({
+      date: new Date(q.date).toISOString(),
+      close: Number(q.close ?? 0),
+      open: Number(q.open ?? q.close ?? 0),
+      high: Number(q.high ?? q.close ?? 0),
+      low: Number(q.low ?? q.close ?? 0),
+      volume: Number(q.volume ?? 0),
+    }));
+    const startPrice = points[0].close;
+    const endPrice = points[points.length - 1].close;
+    return {
+      symbol: c?.meta?.symbol ?? symbol,
+      range,
+      interval: cfg.interval,
+      currency: c?.meta?.currency ?? "USD",
+      points,
+      startPrice,
+      endPrice,
+      changePct: startPrice > 0 ? ((endPrice - startPrice) / startPrice) * 100 : 0,
+    };
+  } catch (err) {
+    logger.warn({ symbol, range, err }, "Failed to fetch history");
+    return null;
+  }
+}
+
 export async function getMarketMovers(): Promise<{ gainers: QuoteResult[]; losers: QuoteResult[] }> {
   const topSymbols = [
     "NVDA", "AAPL", "MSFT", "AMZN", "META",

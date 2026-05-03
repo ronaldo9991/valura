@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getQuote, getBatchQuotes, getMarketMovers } from "../lib/market-data";
+import { getQuote, getBatchQuotes, getMarketMovers, searchSymbols, getHistory } from "../lib/market-data";
 import { GetBatchQuotesBody } from "@workspace/api-zod";
 
 const router = Router();
@@ -32,6 +32,46 @@ router.post("/market/quotes", async (req, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to get batch quotes");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch market data" });
+  }
+});
+
+router.get("/market/search", async (req, res) => {
+  try {
+    const q = String(req.query.q ?? "").trim();
+    if (!q) {
+      res.json({ results: [] });
+      return;
+    }
+    const results = await searchSymbols(q);
+    res.json({ results });
+  } catch (err) {
+    req.log.error({ err }, "Failed to search symbols");
+    res.status(500).json({ error: "internal_error", message: "Failed to search symbols" });
+  }
+});
+
+const ALLOWED_RANGES = ["1d", "5d", "1mo", "3mo", "6mo", "1y", "5y"] as const;
+
+router.get("/market/history/:symbol", async (req, res) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    const rangeRaw = String(req.query.range ?? "1mo");
+    if (!ALLOWED_RANGES.includes(rangeRaw as typeof ALLOWED_RANGES[number])) {
+      res.status(400).json({
+        error: "invalid_range",
+        message: `Range must be one of: ${ALLOWED_RANGES.join(", ")}`,
+      });
+      return;
+    }
+    const history = await getHistory(symbol, rangeRaw);
+    if (!history) {
+      res.status(404).json({ error: "not_found", message: `No history for symbol: ${symbol}` });
+      return;
+    }
+    res.json(history);
+  } catch (err) {
+    req.log.error({ err }, "Failed to get history");
+    res.status(500).json({ error: "internal_error", message: "Failed to fetch history" });
   }
 });
 

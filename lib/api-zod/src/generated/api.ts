@@ -200,6 +200,61 @@ export const GetBatchQuotesResponse = zod.object({
 });
 
 /**
+ * @summary Search for stocks/ETFs by name or ticker
+ */
+export const SearchSymbolsQueryParams = zod.object({
+  q: zod.coerce.string(),
+});
+
+export const SearchSymbolsResponse = zod.object({
+  results: zod.array(
+    zod.object({
+      symbol: zod.string(),
+      name: zod.string(),
+      exchange: zod.string(),
+      type: zod.string(),
+      sector: zod.string().optional(),
+      industry: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get historical price chart for a symbol
+ */
+export const GetMarketHistoryParams = zod.object({
+  symbol: zod.coerce.string(),
+});
+
+export const getMarketHistoryQueryRangeDefault = `1mo`;
+
+export const GetMarketHistoryQueryParams = zod.object({
+  range: zod
+    .enum(["1d", "5d", "1mo", "3mo", "6mo", "1y", "5y"])
+    .default(getMarketHistoryQueryRangeDefault),
+});
+
+export const GetMarketHistoryResponse = zod.object({
+  symbol: zod.string(),
+  range: zod.string(),
+  interval: zod.string(),
+  currency: zod.string(),
+  points: zod.array(
+    zod.object({
+      date: zod.string(),
+      close: zod.number(),
+      open: zod.number(),
+      high: zod.number(),
+      low: zod.number(),
+      volume: zod.number(),
+    }),
+  ),
+  startPrice: zod.number(),
+  endPrice: zod.number(),
+  changePct: zod.number(),
+});
+
+/**
  * @summary Get top market movers (gainers and losers)
  */
 export const GetMarketMoversResponse = zod.object({
