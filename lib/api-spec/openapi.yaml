@@ -3,20 +3,30 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AENS X VALURA — AI Wealth Management Platform API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: users
+    description: User profile operations
+  - name: portfolio
+    description: Portfolio data operations
+  - name: market
+    description: Real-time market data
+  - name: ai
+    description: AI co-investor agent operations
+  - name: conversations
+    description: Conversation history
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,8 +34,267 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get user profile with KYC and risk profile
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all demo user profiles
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/UserProfile"
+                required:
+                  - users
+
+  /portfolio/{userId}:
+    get:
+      operationId: getPortfolio
+      tags: [portfolio]
+      summary: Get portfolio holdings for a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Portfolio data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Portfolio"
+        "404":
+          description: Portfolio not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /portfolio/{userId}/health:
+    get:
+      operationId: getPortfolioHealth
+      tags: [portfolio]
+      summary: Get AI-powered portfolio health analysis
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Portfolio health report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioHealthReport"
+
+  /portfolio/{userId}/summary:
+    get:
+      operationId: getPortfolioSummary
+      tags: [portfolio]
+      summary: Get quick portfolio summary (total value, daily PnL, allocation)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Portfolio summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PortfolioSummary"
+
+  /market/quote/{symbol}:
+    get:
+      operationId: getMarketQuote
+      tags: [market]
+      summary: Get real-time market quote for a ticker
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Market quote
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketQuote"
+        "404":
+          description: Symbol not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /market/quotes:
+    post:
+      operationId: getBatchQuotes
+      tags: [market]
+      summary: Get quotes for multiple tickers at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchQuotesRequest"
+      responses:
+        "200":
+          description: Batch market quotes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  quotes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MarketQuote"
+                required:
+                  - quotes
+
+  /market/movers:
+    get:
+      operationId: getMarketMovers
+      tags: [market]
+      summary: Get top market movers (gainers and losers)
+      responses:
+        "200":
+          description: Market movers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketMovers"
+
+  /ai/chat:
+    post:
+      operationId: aiChat
+      tags: [ai]
+      summary: Send a message to the AI co-investor (streaming SSE response)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: SSE stream of AI response chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /conversations/{userId}:
+    get:
+      operationId: getConversations
+      tags: [conversations]
+      summary: Get conversation history for a user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Conversation list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Conversation"
+                required:
+                  - conversations
+
+  /conversations/{userId}/{conversationId}/messages:
+    get:
+      operationId: getMessages
+      tags: [conversations]
+      summary: Get messages for a conversation
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: conversationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Messages list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Message"
+                required:
+                  - messages
+
 components:
   schemas:
+    BatchQuotesRequest:
+      type: object
+      properties:
+        symbols:
+          type: array
+          items:
+            type: string
+      required:
+        - symbols
+
     HealthStatus:
       type: object
       properties:
@@ -34,3 +303,380 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        riskProfile:
+          type: string
+          enum: [conservative, moderate, aggressive]
+        kycStatus:
+          type: string
+          enum: [pending, approved, rejected]
+        investmentGoal:
+          type: string
+        currency:
+          type: string
+        totalPortfolioValue:
+          type: number
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - email
+        - riskProfile
+        - kycStatus
+        - investmentGoal
+        - currency
+        - totalPortfolioValue
+        - createdAt
+
+    Holding:
+      type: object
+      properties:
+        ticker:
+          type: string
+        name:
+          type: string
+        shares:
+          type: number
+        avgCostBasis:
+          type: number
+        currentPrice:
+          type: number
+        currentValue:
+          type: number
+        gainLoss:
+          type: number
+        gainLossPct:
+          type: number
+        weight:
+          type: number
+        sector:
+          type: string
+        currency:
+          type: string
+      required:
+        - ticker
+        - name
+        - shares
+        - avgCostBasis
+        - currentPrice
+        - currentValue
+        - gainLoss
+        - gainLossPct
+        - weight
+        - sector
+        - currency
+
+    Portfolio:
+      type: object
+      properties:
+        userId:
+          type: string
+        totalValue:
+          type: number
+        cashBalance:
+          type: number
+        totalCost:
+          type: number
+        totalGainLoss:
+          type: number
+        totalGainLossPct:
+          type: number
+        holdings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Holding"
+        lastUpdated:
+          type: string
+      required:
+        - userId
+        - totalValue
+        - cashBalance
+        - totalCost
+        - totalGainLoss
+        - totalGainLossPct
+        - holdings
+        - lastUpdated
+
+    PortfolioSummary:
+      type: object
+      properties:
+        userId:
+          type: string
+        totalValue:
+          type: number
+        dailyChange:
+          type: number
+        dailyChangePct:
+          type: number
+        totalReturn:
+          type: number
+        totalReturnPct:
+          type: number
+        topHolding:
+          type: string
+        holdingsCount:
+          type: number
+        riskScore:
+          type: number
+        allocationByAsset:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              value:
+                type: number
+              pct:
+                type: number
+            required:
+              - name
+              - value
+              - pct
+        allocationBySector:
+          type: array
+          items:
+            type: object
+            properties:
+              sector:
+                type: string
+              pct:
+                type: number
+            required:
+              - sector
+              - pct
+      required:
+        - userId
+        - totalValue
+        - dailyChange
+        - dailyChangePct
+        - totalReturn
+        - totalReturnPct
+        - topHolding
+        - holdingsCount
+        - riskScore
+        - allocationByAsset
+        - allocationBySector
+
+    ConcentrationRisk:
+      type: object
+      properties:
+        topPositionPct:
+          type: number
+        top3PositionsPct:
+          type: number
+        flag:
+          type: string
+          enum: [low, moderate, high, critical]
+      required:
+        - topPositionPct
+        - top3PositionsPct
+        - flag
+
+    Performance:
+      type: object
+      properties:
+        totalReturnPct:
+          type: number
+        annualizedReturnPct:
+          type: number
+        volatility:
+          type: number
+      required:
+        - totalReturnPct
+        - annualizedReturnPct
+        - volatility
+
+    BenchmarkComparison:
+      type: object
+      properties:
+        benchmark:
+          type: string
+        portfolioReturnPct:
+          type: number
+        benchmarkReturnPct:
+          type: number
+        alphaPct:
+          type: number
+      required:
+        - benchmark
+        - portfolioReturnPct
+        - benchmarkReturnPct
+        - alphaPct
+
+    Observation:
+      type: object
+      properties:
+        severity:
+          type: string
+          enum: [info, warning, danger]
+        text:
+          type: string
+      required:
+        - severity
+        - text
+
+    PortfolioHealthReport:
+      type: object
+      properties:
+        userId:
+          type: string
+        concentrationRisk:
+          $ref: "#/components/schemas/ConcentrationRisk"
+        performance:
+          $ref: "#/components/schemas/Performance"
+        benchmarkComparison:
+          $ref: "#/components/schemas/BenchmarkComparison"
+        observations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Observation"
+        disclaimer:
+          type: string
+        generatedAt:
+          type: string
+      required:
+        - userId
+        - concentrationRisk
+        - performance
+        - benchmarkComparison
+        - observations
+        - disclaimer
+        - generatedAt
+
+    MarketQuote:
+      type: object
+      properties:
+        symbol:
+          type: string
+        name:
+          type: string
+        price:
+          type: number
+        change:
+          type: number
+        changePct:
+          type: number
+        volume:
+          type: number
+        marketCap:
+          type: number
+        high52w:
+          type: number
+        low52w:
+          type: number
+        currency:
+          type: string
+        exchange:
+          type: string
+        lastUpdated:
+          type: string
+      required:
+        - symbol
+        - name
+        - price
+        - change
+        - changePct
+        - currency
+        - lastUpdated
+
+    MarketMovers:
+      type: object
+      properties:
+        gainers:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketQuote"
+        losers:
+          type: array
+          items:
+            $ref: "#/components/schemas/MarketQuote"
+        lastUpdated:
+          type: string
+      required:
+        - gainers
+        - losers
+        - lastUpdated
+
+    ChatRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+        message:
+          type: string
+        conversationId:
+          type: string
+        portfolioContext:
+          type: boolean
+      required:
+        - userId
+        - message
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        title:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        messageCount:
+          type: number
+      required:
+        - id
+        - userId
+        - title
+        - createdAt
+        - updatedAt
+        - messageCount
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+        conversationId:
+          type: string
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        intent:
+          type: string
+        agent:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - conversationId
+        - role
+        - content
+        - createdAt
