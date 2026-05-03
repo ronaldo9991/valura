@@ -1,222 +1,273 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { ChevronRight, TrendingUp, Shield, Activity, ArrowUpRight, BarChart3, Globe, Lock, Cpu, Briefcase } from "lucide-react";
+import { ArrowUpRight, TrendingUp, Shield, Activity, BarChart3, Globe, Lock, Cpu, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
+import { useGetMarketMovers } from "@workspace/api-client-react";
 
 export default function Home() {
+  const { data: movers } = useGetMarketMovers();
+
+  const allMovers = [...(movers?.gainers || []), ...(movers?.losers || [])];
+
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans">
+    <div className="min-h-screen bg-background text-foreground overflow-hidden font-sans selection:bg-primary/30">
+      
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 glass-panel border-b border-white/5">
+      <nav className="fixed top-0 w-full z-50 glass-panel border-b border-border">
         <div className="container mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
-              <Activity className="text-primary-foreground w-5 h-5" />
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="w-8 h-8 rounded-sm bg-gold-metal flex items-center justify-center text-primary-foreground font-bold shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all">
+              V
             </div>
-            <span className="font-bold text-xl tracking-tight">AENS <span className="text-primary">X</span> VALURA</span>
+            <span className="font-bold text-xl tracking-widest uppercase">AENS <span className="text-primary mx-1">X</span> Valura</span>
           </div>
-          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-white/70">
-            <a href="#platform" className="hover:text-white transition-colors">Platform</a>
-            <a href="#intelligence" className="hover:text-white transition-colors">Intelligence</a>
-            <a href="#security" className="hover:text-white transition-colors">Security</a>
+          <div className="hidden md:flex items-center gap-10 text-xs font-mono uppercase tracking-widest text-muted-foreground">
+            <a href="#platform" className="hover:text-foreground transition-colors">Platform</a>
+            <a href="#intelligence" className="hover:text-foreground transition-colors">Intelligence</a>
+            <a href="#security" className="hover:text-foreground transition-colors">Security</a>
           </div>
-          <Link href="/dashboard">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold rounded-full px-6">
-              Go to Dashboard
-            </Button>
-          </Link>
+          <div className="flex items-center gap-4">
+            <ModeToggle />
+            <Link href="/dashboard">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-mono text-xs uppercase tracking-widest rounded-none h-10 px-6 group relative overflow-hidden">
+                <span className="relative z-10 flex items-center">
+                  Terminal <ArrowUpRight className="ml-2 w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </span>
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+              </Button>
+            </Link>
+          </div>
         </div>
+        
+        {/* Ticker Tape */}
+        {allMovers.length > 0 && (
+          <div className="w-full h-8 bg-black/5 dark:bg-white/5 border-b border-border overflow-hidden flex items-center">
+            <motion.div 
+              animate={{ x: [0, -1000] }}
+              transition={{ repeat: Infinity, ease: "linear", duration: 20 }}
+              className="flex whitespace-nowrap"
+            >
+              {[...allMovers, ...allMovers, ...allMovers].map((mover, i) => (
+                <div key={i} className="flex items-center gap-3 px-6 border-r border-border/50 text-xs font-mono">
+                  <span className="font-bold">{mover.symbol}</span>
+                  <span>${mover.price.toFixed(2)}</span>
+                  <span className={mover.changePct >= 0 ? "text-emerald-500" : "text-destructive"}>
+                    {mover.changePct >= 0 ? '+' : ''}{mover.changePct.toFixed(2)}%
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-32 flex items-center justify-center min-h-[90vh]">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background" />
-        <div className="container relative z-10 px-6 mx-auto text-center">
+      <section className="relative pt-40 pb-32 flex items-center justify-center min-h-[95vh] border-b border-border">
+        {/* Background Animation - Drifting Grid Lines */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.1] pointer-events-none" 
+             style={{ backgroundImage: 'linear-gradient(to right, var(--border) 1px, transparent 1px), linear-gradient(to bottom, var(--border) 1px, transparent 1px)', backgroundSize: '4rem 4rem' }}>
+          <motion.div 
+            animate={{ 
+              backgroundPosition: ['0px 0px', '64px 64px'],
+            }}
+            transition={{ repeat: Infinity, ease: "linear", duration: 8 }}
+            className="w-full h-full absolute inset-0"
+            style={{ backgroundImage: 'inherit', backgroundSize: 'inherit' }}
+          />
+        </div>
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-background pointer-events-none" />
+
+        <div className="container relative z-10 px-6 mx-auto text-center flex flex-col items-center">
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="max-w-4xl mx-auto"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-8"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/30 bg-primary/5 text-primary text-sm font-medium mb-8">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-              </span>
-              Next Generation Wealth Intelligence
+            <div className="inline-flex items-center gap-2 px-4 py-2 border border-gold-hairline bg-background text-primary text-xs font-mono uppercase tracking-widest shadow-[0_0_20px_rgba(212,175,55,0.15)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Private Wealth Desk
             </div>
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-tight">
-              Master Your Wealth. <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-amber-200">
-                Command Your Future.
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl text-white/60 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Institutional-grade financial intelligence meets human-centric design. Experience the ultimate AI co-investor.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/dashboard">
-                <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-semibold">
-                  Launch Platform
-                  <ArrowUpRight className="ml-2 w-5 h-5" />
-                </Button>
-              </Link>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto h-14 px-8 text-lg rounded-full font-semibold border-white/10 hover:bg-white/5">
-                View Performance
+          </motion.div>
+
+          <h1 className="text-5xl md:text-7xl lg:text-[7rem] font-serif font-bold tracking-tight mb-8 leading-[1.1] max-w-5xl mx-auto flex flex-wrap justify-center gap-x-4 gap-y-2">
+            {["Master", "Your", "Wealth.", "Command", "Your", "Future."].map((word, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                className={word === "Future." ? "text-gold" : "text-foreground"}
+              >
+                {word}
+              </motion.span>
+            ))}
+          </h1>
+
+          <motion.p 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto font-mono leading-relaxed"
+          >
+            Institutional-grade quantitative intelligence meets a black-tie AI co-investor. Exclusive insights for the ambitious.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-6"
+          >
+            <Link href="/dashboard">
+              <Button size="lg" className="h-14 px-8 text-sm bg-primary text-primary-foreground hover:bg-primary/90 font-mono uppercase tracking-widest rounded-none shadow-[0_0_30px_rgba(212,175,55,0.2)] group relative overflow-hidden">
+                <span className="relative z-10 flex items-center">
+                  Access Terminal <ArrowUpRight className="ml-3 w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </span>
               </Button>
-            </div>
+            </Link>
+            <Button size="lg" variant="outline" className="h-14 px-8 text-sm font-mono uppercase tracking-widest rounded-none border-border hover:bg-white/5 hover:text-foreground text-muted-foreground">
+              Read Manifesto
+            </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* Core Intelligence Section */}
-      <section className="py-32 relative border-t border-white/5 bg-white/[0.01]" id="intelligence">
+      {/* Intelligence Section */}
+      <section className="py-32 relative border-b border-border bg-card/50" id="intelligence">
         <div className="container mx-auto px-6">
-          <div className="text-center max-w-3xl mx-auto mb-20">
-            <h2 className="text-4xl font-bold mb-6">The Intelligence Layer</h2>
-            <p className="text-xl text-white/60">AENS X VALURA acts as your personal hedge fund manager, processing millions of data points per second to identify asymmetric opportunities.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div className="glass-panel p-10 rounded-3xl border border-white/5">
-              <Cpu className="w-12 h-12 text-primary mb-6" />
-              <h3 className="text-2xl font-bold mb-4">Neural Allocation</h3>
-              <p className="text-white/60 leading-relaxed">Dynamic portfolio rebalancing driven by multi-layered neural networks. We optimize your asset allocation across market cycles automatically.</p>
-            </div>
-            <div className="glass-panel p-10 rounded-3xl border border-white/5">
-              <Globe className="w-12 h-12 text-secondary mb-6" />
-              <h3 className="text-2xl font-bold mb-4">Global Macro Signals</h3>
-              <p className="text-white/60 leading-relaxed">Real-time analysis of global economic indicators, geopolitical events, and sentiment shifts translated into actionable trading strategies.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="py-32 relative border-t border-white/5" id="platform">
-        <div className="container mx-auto px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <FeatureCard 
-              icon={<TrendingUp className="w-8 h-8 text-primary" />}
-              title="Predictive Analytics"
-              description="Anticipate market movements with our proprietary institutional-grade machine learning models."
-            />
-            <FeatureCard 
-              icon={<Activity className="w-8 h-8 text-secondary" />}
-              title="Real-Time Alpha"
-              description="Live portfolio optimization and dynamic rebalancing to capture outsized returns."
-            />
-            <FeatureCard 
-              icon={<Shield className="w-8 h-8 text-emerald-400" />}
-              title="Ironclad Security"
-              description="Bank-level encryption and continuous risk monitoring protect your assets 24/7."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Proof of Work Section */}
-      <section className="py-32 relative border-t border-white/5 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-primary/5 via-background to-background">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center gap-16">
-            <div className="flex-1">
-              <h2 className="text-4xl font-bold mb-6">Institutional Grade. Retail Access.</h2>
-              <p className="text-xl text-white/60 mb-8 leading-relaxed">Previously available only to ultra-high-net-worth individuals and family offices. We democratize access to elite quantitative strategies.</p>
-              <ul className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6">Neural Allocation</h2>
+              <p className="text-lg text-muted-foreground mb-8 font-mono leading-relaxed">
+                Valura processes millions of macro-economic signals to construct asymmetric risk profiles. The digital equivalent of a dedicated Swiss quant desk.
+              </p>
+              <ul className="space-y-4 font-mono text-sm">
                 {[
-                  "Algorithmic tax-loss harvesting",
+                  "Dynamic risk-adjusted rebalancing",
                   "Automated direct indexing",
-                  "Smart beta execution",
-                  "Alternative asset exposure"
+                  "Macro-sentiment parsing",
+                  "Tax-loss harvesting algorithms"
                 ].map((item, i) => (
-                  <li key={i} className="flex items-center gap-3 text-white/80">
-                    <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                      <div className="w-2 h-2 rounded-full bg-primary" />
-                    </div>
+                  <li key={i} className="flex items-center gap-4 text-foreground/80 border-b border-border/50 pb-3">
+                    <span className="text-primary">0{i+1}</span>
                     {item}
                   </li>
                 ))}
               </ul>
-            </div>
-            <div className="flex-1">
-              <div className="glass-panel p-8 rounded-3xl border border-white/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-6 opacity-10">
-                  <BarChart3 className="w-32 h-32 text-primary" />
-                </div>
-                <div className="relative z-10">
-                  <div className="text-sm font-semibold text-primary uppercase tracking-wider mb-2">Backtested Performance</div>
-                  <div className="text-5xl font-bold mb-4 text-white">24.8%</div>
-                  <div className="text-white/50 text-sm">Annualized Alpha vs S&P 500</div>
-                  <div className="mt-8 space-y-4">
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary w-[85%]" />
-                    </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-secondary w-[65%]" />
-                    </div>
+            </motion.div>
+            
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="relative aspect-square max-w-md mx-auto w-full"
+            >
+              <div className="absolute inset-0 rounded-full border border-gold-hairline animate-[spin_60s_linear_infinite]" />
+              <div className="absolute inset-4 rounded-full border border-border border-dashed animate-[spin_40s_linear_infinite_reverse]" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-32 bg-background border border-gold-hairline shadow-[0_0_50px_rgba(212,175,55,0.2)] flex items-center justify-center rotate-45 group">
+                  <div className="rotate-[-45deg] text-center">
+                    <Cpu className="w-8 h-8 text-primary mx-auto mb-2" />
+                    <div className="text-[10px] font-mono uppercase text-muted-foreground">Core Engine</div>
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Security Section */}
-      <section className="py-32 relative border-t border-white/5" id="security">
-        <div className="container mx-auto px-6 text-center max-w-4xl">
-          <Lock className="w-16 h-16 text-emerald-400 mx-auto mb-8" />
-          <h2 className="text-4xl font-bold mb-6">Fort Knox for Your Wealth</h2>
-          <p className="text-xl text-white/60 mb-12">Your assets are custodied with apex-tier partners. We never take custody of your funds. We only provide the intelligence to grow them.</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <div className="px-6 py-3 rounded-full border border-white/10 bg-white/5 font-medium">SOC 2 Type II Certified</div>
-            <div className="px-6 py-3 rounded-full border border-white/10 bg-white/5 font-medium">SIPC Insured</div>
-            <div className="px-6 py-3 rounded-full border border-white/10 bg-white/5 font-medium">End-to-End Encryption</div>
+      {/* Features Grid */}
+      <section className="py-32 relative border-b border-border" id="platform">
+        <div className="container mx-auto px-6">
+          <div className="text-center max-w-3xl mx-auto mb-20">
+            <h2 className="text-4xl md:text-5xl font-serif font-bold mb-6">Institutional Grade. Retail Access.</h2>
+            <p className="text-muted-foreground font-mono text-sm uppercase tracking-widest">Architected for precision.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <FeatureCard 
+              delay={0}
+              icon={<TrendingUp className="w-6 h-6 text-primary" />}
+              title="Real-Time Alpha"
+              description="Live portfolio optimization to capture outsized returns during volatile market sessions."
+            />
+            <FeatureCard 
+              delay={0.2}
+              icon={<BarChart3 className="w-6 h-6 text-primary" />}
+              title="Advanced Analytics"
+              description="Deep concentration risk checks, volatility index metrics, and benchmark comparisons."
+            />
+            <FeatureCard 
+              delay={0.4}
+              icon={<Shield className="w-6 h-6 text-primary" />}
+              title="Ironclad Security"
+              description="SIPC insured custody integration with bank-level encryption. We never touch your funds."
+            />
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-32 relative border-t border-white/5 bg-primary/5">
+      {/* CTA */}
+      <section className="py-32 relative bg-[radial-gradient(ellipse_at_bottom,_var(--tw-gradient-stops))] from-primary/10 via-background to-background">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-5xl font-bold mb-8">Ready to Command Your Future?</h2>
-          <Link href="/dashboard">
-            <Button size="lg" className="h-16 px-10 text-xl bg-primary text-primary-foreground hover:bg-primary/90 rounded-full font-semibold">
-              Enter Platform
-              <ArrowUpRight className="ml-2 w-6 h-6" />
-            </Button>
-          </Link>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-5xl md:text-7xl font-serif font-bold mb-8">Take Command.</h2>
+            <Link href="/dashboard">
+              <Button size="lg" className="h-16 px-10 text-base bg-primary text-primary-foreground hover:bg-primary/90 font-mono uppercase tracking-widest rounded-none shadow-[0_0_40px_rgba(212,175,55,0.3)]">
+                Enter The Terminal
+                <ArrowUpRight className="ml-3 w-6 h-6" />
+              </Button>
+            </Link>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-12 bg-black/40">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-sm text-white/40">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <div className="w-6 h-6 rounded bg-primary/20 flex items-center justify-center">
-              <Activity className="text-primary w-3 h-3" />
+      <footer className="border-t border-border py-12 bg-background">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center text-xs font-mono uppercase tracking-widest text-muted-foreground gap-4">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded-sm bg-gold-metal flex items-center justify-center text-background font-bold text-[8px]">
+              V
             </div>
-            <span className="font-semibold text-white/80">AENS X VALURA</span>
+            <span>AENS X VALURA</span>
           </div>
-          <div>© {new Date().getFullYear()} AENS X VALURA. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} Precision Wealth.</div>
         </div>
       </footer>
+
     </div>
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
+function FeatureCard({ icon, title, description, delay }: { icon: React.ReactNode, title: string, description: string, delay: number }) {
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="glass-panel p-8 rounded-3xl"
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.6, delay }}
+      className="p-8 border border-border bg-card hover:border-gold-hairline transition-colors group"
     >
-      <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-6">
+      <div className="w-12 h-12 border border-border bg-background flex items-center justify-center mb-6 group-hover:bg-primary/5 transition-colors">
         {icon}
       </div>
-      <h3 className="text-2xl font-bold mb-4">{title}</h3>
-      <p className="text-white/60 leading-relaxed">{description}</p>
+      <h3 className="text-xl font-serif font-bold mb-3">{title}</h3>
+      <p className="text-muted-foreground font-mono text-sm leading-relaxed">{description}</p>
     </motion.div>
   );
 }

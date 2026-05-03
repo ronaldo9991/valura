@@ -59,54 +59,78 @@ export function useAiStream() {
           signal: abortControllerRef.current.signal,
         });
 
-        if (!response.body) {
-          throw new Error("No response body");
+        if (!response.ok || !response.body) {
+          throw new Error(`Stream failed: ${response.status} ${response.statusText}`);
         }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = "";
+
+        const flushUpdate = () => {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: assistantContent, ...metadata }
+                : msg
+            )
+          );
+        };
+
+        const processEvent = (rawEvent: string) => {
+          // An SSE event can have multiple `data:` lines that concatenate with newlines.
+          const dataLines: string[] = [];
+          for (const line of rawEvent.split("\n")) {
+            if (line.startsWith("data:")) {
+              dataLines.push(line.slice(5).replace(/^ /, ""));
+            }
+          }
+          if (dataLines.length === 0) return;
+          const dataStr = dataLines.join("\n").trim();
+          if (!dataStr) return;
+          try {
+            const data = JSON.parse(dataStr);
+            if (data.type === "content" && data.content) {
+              assistantContent += data.content;
+            } else if (data.type === "metadata" && data.metadata) {
+              metadata = { ...metadata, ...data.metadata };
+            } else if (data.type === "error") {
+              assistantContent += `\n\n_Error: ${data.message || "stream failed"}_`;
+            }
+            flushUpdate();
+          } catch (e) {
+            console.error("Failed to parse SSE event:", dataStr, e);
+          }
+        };
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          buffer += decoder.decode(value, { stream: true });
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const dataStr = line.replace("data: ", "").trim();
-              if (!dataStr) continue;
-
-              try {
-                const data = JSON.parse(dataStr);
-
-                if (data.type === "content" && data.content) {
-                  assistantContent += data.content;
-                } else if (data.type === "metadata" && data.metadata) {
-                  metadata = { ...metadata, ...data.metadata };
-                }
-
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessageId
-                      ? {
-                          ...msg,
-                          content: assistantContent,
-                          ...metadata,
-                        }
-                      : msg
-                  )
-                );
-              } catch (e) {
-                console.error("Failed to parse SSE message:", dataStr);
-              }
-            }
+          // Process complete SSE events (delimited by blank line)
+          let sepIdx: number;
+          while ((sepIdx = buffer.indexOf("\n\n")) !== -1) {
+            const rawEvent = buffer.slice(0, sepIdx);
+            buffer = buffer.slice(sepIdx + 2);
+            if (rawEvent.trim()) processEvent(rawEvent);
           }
         }
+        // Flush any trailing event without a final blank line
+        if (buffer.trim()) processEvent(buffer);
       } catch (error) {
         if ((error as Error).name !== "AbortError") {
           console.error("Stream error:", error);
+          assistantContent += assistantContent
+            ? `\n\n_Connection interrupted. Please retry._`
+            : `_Sorry — the AI desk is unreachable. Please try again._`;
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: assistantContent, ...metadata }
+                : msg
+            )
+          );
         }
       } finally {
         setIsStreaming(false);
