@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StockChart } from "./stock-chart";
+import { NewsFeed } from "./news-feed";
 
 export function StockDetailDrawer({
   symbol,
@@ -117,6 +118,11 @@ export function StockDetailDrawer({
                   </div>
                 </section>
               )}
+
+              {/* News */}
+              <section>
+                <NewsFeed ticker={symbol} limit={6} />
+              </section>
 
               {quote?.exchange && (
                 <div className="pt-4 border-t border-border/50 flex items-center justify-between text-[10px] font-mono uppercase tracking-widest text-muted-foreground">

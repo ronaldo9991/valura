@@ -6,6 +6,8 @@ import marketRouter from "./market";
 import conversationsRouter from "./conversations";
 import aiRouter from "./ai";
 import chronosRouter from "./chronos";
+import watchlistsRouter from "./watchlists";
+import newsRouter from "./news";
 
 const router: IRouter = Router();
 
@@ -16,5 +18,7 @@ router.use(marketRouter);
 router.use(conversationsRouter);
 router.use(aiRouter);
 router.use(chronosRouter);
+router.use(watchlistsRouter);
+router.use(newsRouter);
 
 export default router;

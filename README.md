@@ -106,17 +106,36 @@ Health endpoints:
 
 ## Roadmap
 
-Tracked in `/Users/rivalin/.claude/plans/rate-the-platform-and-imperative-ullman.md` (planning artifact). Shipped in this commit:
+Tracked in `/Users/rivalin/.claude/plans/rate-the-platform-and-imperative-ullman.md` (planning artifact). Shipped:
 
 - ✅ Phase A: Replit removal + single deployable artifact
 - ✅ Phase B.2/B.3: Helmet, CORS allowlist, rate limiting, graceful shutdown, `/readyz`, error boundary
 - ✅ Phase B.5: Drizzle generate+migrate workflow
+- ✅ Phase C.1: Watchlists (CRUD, live quotes, dashboard panel)
+- ✅ Phase C.2: News feed (Finnhub, 10-min LRU cache, embedded in stock detail drawer)
 - ✅ Phase D: Railway config
 - ✅ Phase E: GitHub remote + CI
 
 Pending follow-ups:
-- Phase B.1: Clerk auth (replaces localStorage demo) + `/me/*` route refactor
-- Phase B.4: Sentry wiring (requires DSN)
-- Phase C.1: Watchlists feature
-- Phase C.2: News feed (Finnhub)
-- Phase C.3: Price alerts (Resend + cron worker)
+- **Phase B.1**: Clerk auth (replaces localStorage demo) + `/me/*` route refactor — biggest open work; requires Clerk account setup
+- **Phase B.4**: Sentry wiring (requires DSN env var)
+- **Phase C.3**: Price alerts (Resend + cron worker, requires verified domain)
+- Tighten Helmet CSP, code-split the UI bundle, add unit tests
+
+### Watchlists API surface (Phase C.1)
+
+Demo-mode auth (path-bound `userId`) — replaced by `/me/*` once Clerk lands.
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/watchlists/:userId` | Lists with embedded items + live quotes |
+| POST | `/api/watchlists/:userId` | Body `{ name? }` |
+| DELETE | `/api/watchlists/:userId/:watchlistId` | Cascade-deletes items |
+| POST | `/api/watchlists/:userId/:watchlistId/items` | Body `{ ticker }` (returns 409 on duplicate) |
+| DELETE | `/api/watchlists/:userId/:watchlistId/items/:ticker` | |
+
+### News API surface (Phase C.2)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/news/:ticker?days=7` | Returns `{ articles, configured }`. Returns empty + `configured: false` when `FINNHUB_API_KEY` is unset, so the UI can render a friendly hint instead of failing. |

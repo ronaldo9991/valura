@@ -18,6 +18,7 @@ import { AiChat, type AiChatHandle } from "@/components/dashboard/ai-chat";
 import { StockSearch } from "@/components/dashboard/stock-search";
 import { StockDetailDrawer } from "@/components/dashboard/stock-detail-drawer";
 import { StockChart } from "@/components/dashboard/stock-chart";
+import { WatchlistPanel } from "@/components/dashboard/watchlist-panel";
 import {
   ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell, Tooltip as RechartsTooltip,
 } from "recharts";
@@ -320,6 +321,9 @@ export default function Dashboard() {
               </div>
               <HoldingsTable portfolio={portfolio} isLoading={isLoadingPortfolio} userId={userId} onPickSymbol={(s) => setDrawerSymbol(s)} />
             </section>
+
+            {/* Section: Watchlists */}
+            <WatchlistPanel userId={userId} onPickTicker={(t) => setDrawerSymbol(t)} />
 
             {/* Section 4: Allocation */}
             <section id="allocation" className="space-y-5">
