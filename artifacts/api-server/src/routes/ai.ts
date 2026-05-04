@@ -4,11 +4,12 @@ import { usersTable, holdingsTable, cashBalancesTable, conversationsTable, messa
 import { eq } from "drizzle-orm";
 import { AiChatBody } from "@workspace/api-zod";
 import { runPipeline } from "../lib/ai-pipeline";
+import { aiLimiter } from "../middlewares/rate-limit";
 import { randomUUID } from "crypto";
 
 const router = Router();
 
-router.post("/ai/chat", async (req, res) => {
+router.post("/ai/chat", aiLimiter, async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");

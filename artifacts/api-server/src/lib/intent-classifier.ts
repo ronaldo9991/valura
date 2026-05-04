@@ -1,8 +1,7 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { logger } from "./logger";
+import { getOpenAI } from "./openai-client";
 import { z } from "zod";
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export const AGENTS = [
   "portfolio_health",
@@ -50,6 +49,9 @@ export async function classifyIntent(
   query: string,
   priorTurns: PriorTurn[] = []
 ): Promise<Classification> {
+  const client = getOpenAI();
+  if (!client) return FALLBACK_CLASSIFICATION;
+
   const systemPrompt = `You are an intent classifier for AENS X VALURA, a wealth management AI platform.
 
 Classify the user's query and return a JSON object with:

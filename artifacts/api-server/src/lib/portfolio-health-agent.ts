@@ -1,8 +1,6 @@
-import OpenAI from "openai";
 import { logger } from "./logger";
+import { getOpenAI } from "./openai-client";
 import { getBatchQuotes, getBenchmarkReturn } from "./market-data";
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface HoldingInput {
   ticker: string;
@@ -142,19 +140,26 @@ Generate 3-5 specific, actionable observations. Format as a natural flowing para
   let fullText = "";
 
   try {
-    const stream = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "system", content: systemPrompt }],
-      stream: true,
-      max_tokens: 600,
-      temperature: 0.4,
-    });
+    const client = getOpenAI();
+    if (!client) {
+      onChunk(
+        "AI narrative is disabled locally — set OPENAI_API_KEY for full commentary. Structural metrics below still reflect your portfolio.",
+      );
+    } else {
+      const stream = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: systemPrompt }],
+        stream: true,
+        max_tokens: 600,
+        temperature: 0.4,
+      });
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content ?? "";
-      if (content) {
-        fullText += content;
-        onChunk(content);
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content ?? "";
+        if (content) {
+          fullText += content;
+          onChunk(content);
+        }
       }
     }
   } catch (err) {
@@ -208,19 +213,26 @@ Give them 3-4 concrete, actionable steps to start their investment journey. Be e
 
   let fullText = "";
   try {
-    const stream = await client.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "system", content: systemPrompt }],
-      stream: true,
-      max_tokens: 400,
-      temperature: 0.5,
-    });
+    const client = getOpenAI();
+    if (!client) {
+      onChunk(
+        "Welcome aboard — add holdings or connect accounts to see your dashboard. Set OPENAI_API_KEY for personalized AI onboarding tips.",
+      );
+    } else {
+      const stream = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [{ role: "system", content: systemPrompt }],
+        stream: true,
+        max_tokens: 400,
+        temperature: 0.5,
+      });
 
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content ?? "";
-      if (content) {
-        fullText += content;
-        onChunk(content);
+      for await (const chunk of stream) {
+        const content = chunk.choices[0]?.delta?.content ?? "";
+        if (content) {
+          fullText += content;
+          onChunk(content);
+        }
       }
     }
   } catch (err) {

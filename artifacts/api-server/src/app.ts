@@ -4,6 +4,7 @@ import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import router from "./routes";
+import { apiLimiter } from "./middlewares/rate-limit";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
@@ -55,7 +56,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", router);
+app.use("/api", apiLimiter, router);
 
 if (isProduction) {
   const publicDir = path.resolve(__dirname, "../public");

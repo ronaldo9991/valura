@@ -1,10 +1,9 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
 import { logger } from "./logger";
 import { runSafetyGuard } from "./safety-guard";
 import { classifyIntent, type AgentName } from "./intent-classifier";
+import { getOpenAI } from "./openai-client";
 import { runPortfolioHealthAgent, type HoldingInput, type UserContext } from "./portfolio-health-agent";
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export type AgentMode = "normal" | "coach" | "analyst" | "risk_officer" | "strategist";
 
@@ -180,6 +179,16 @@ async function handlePersonaChat(
   ];
 
   try {
+    const client = getOpenAI();
+    if (!client) {
+      write(
+        formatSSE({
+          type: "error",
+          error: "AI chat requires OPENAI_API_KEY. Add it to your environment and restart the API server.",
+        }),
+      );
+      return;
+    }
     const stream = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages,
@@ -228,6 +237,16 @@ async function handleGeneralChat(
   ];
 
   try {
+    const client = getOpenAI();
+    if (!client) {
+      write(
+        formatSSE({
+          type: "error",
+          error: "AI chat requires OPENAI_API_KEY. Add it to your environment and restart the API server.",
+        }),
+      );
+      return;
+    }
     const stream = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages,
