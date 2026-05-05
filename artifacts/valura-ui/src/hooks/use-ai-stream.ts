@@ -15,7 +15,13 @@ export function useAiStream() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
-    async (userId: string, content: string, conversationId?: string, agentMode?: string) => {
+    async (
+      userId: string,
+      content: string,
+      conversationId?: string,
+      agentMode?: string,
+      displayName?: string | null,
+    ) => {
       if (!content.trim()) return;
 
       const userMessage: AiMessage = {
@@ -56,6 +62,7 @@ export function useAiStream() {
             conversationId,
             portfolioContext: true,
             agentMode: agentMode ?? "normal",
+            displayName: displayName?.trim() || undefined,
           }),
           signal: abortControllerRef.current.signal,
         });

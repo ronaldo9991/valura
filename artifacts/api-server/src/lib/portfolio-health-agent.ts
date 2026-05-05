@@ -1,6 +1,7 @@
 import { logger } from "./logger";
 import { getOpenAI } from "./openai-client";
 import { getBatchQuotes, getBenchmarkReturn } from "./market-data";
+import { humanAddressingInstructions } from "./user-addressing";
 
 export interface HoldingInput {
   ticker: string;
@@ -135,7 +136,7 @@ Portfolio context:
 - Holdings: ${withWeights.map((h) => `${h.ticker}(${h.weight.toFixed(1)}%,${h.gainLossPct >= 0 ? "+" : ""}${h.gainLossPct.toFixed(1)}%)`).join(", ")}
 - Sectors: ${[...new Set(holdings.map((h) => h.sector))].join(", ")}
 
-Generate 3-5 specific, actionable observations. Format as a natural flowing paragraph — NOT bullet points. Begin immediately with the most important insight.`;
+Generate 3-5 specific, actionable observations. Format as a natural flowing paragraph — NOT bullet points. Begin immediately with the most important insight.` + humanAddressingInstructions(user.name);
 
   let fullText = "";
 
@@ -209,7 +210,7 @@ This user has no portfolio yet. This is actually exciting — they are ready to 
 
 User: ${user.name}, Risk profile: ${user.riskProfile}, Goal: ${user.investmentGoal}, Currency: ${user.currency}
 
-Give them 3-4 concrete, actionable steps to start their investment journey. Be encouraging but grounded. Reference their risk profile. Suggest a simple first allocation approach (e.g., index funds for conservative). Keep it in plain language, no jargon.`;
+Give them 3-4 concrete, actionable steps to start their investment journey. Be encouraging but grounded. Reference their risk profile. Suggest a simple first allocation approach (e.g., index funds for conservative). Keep it in plain language, no jargon.` + humanAddressingInstructions(user.name);
 
   let fullText = "";
   try {

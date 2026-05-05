@@ -309,6 +309,31 @@ paths:
               schema:
                 type: string
 
+  /pathfinder/scenario-insight:
+    post:
+      operationId: pathfinderScenarioInsight
+      tags: [pathfinder]
+      summary: AI narrative for Pathfinder scenario lab (illustrative, educational)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScenarioInsightRequest"
+      responses:
+        "200":
+          description: Generated narrative text
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScenarioInsightResponse"
+        "503":
+          description: OpenAI not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /conversations/{userId}:
     get:
       operationId: getConversations
@@ -906,9 +931,46 @@ components:
           type: string
           enum: ["normal", "coach", "analyst", "risk_officer", "strategist"]
           description: "Persona override for the AI co-investor."
+        displayName:
+          type: string
+          description: Human-readable name for the signed-in user (e.g. workstation login). The assistant should address this person, not the demo profile name alone.
       required:
         - userId
         - message
+
+    ScenarioInsightRequest:
+      type: object
+      properties:
+        monthly:
+          type: number
+          description: Monthly contribution amount
+        years:
+          type: number
+        annualReturnPct:
+          type: number
+          description: Assumed annual return percentage for illustration only
+        hypotheticalEndingBalance:
+          type: number
+          description: Server- or client-calculated balance from the assumption sliders
+        currency:
+          type: string
+          default: USD
+        displayName:
+          type: string
+          description: Optional first name or full name for greetings in the narrative
+      required:
+        - monthly
+        - years
+        - annualReturnPct
+        - hypotheticalEndingBalance
+
+    ScenarioInsightResponse:
+      type: object
+      properties:
+        narrative:
+          type: string
+      required:
+        - narrative
 
     Conversation:
       type: object

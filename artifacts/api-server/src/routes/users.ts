@@ -1,13 +1,17 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { usersTable } from "@workspace/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, ne } from "drizzle-orm";
 
 const router = Router();
 
 router.get("/users", async (req, res) => {
   try {
-    const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
+    const users = await db
+      .select()
+      .from(usersTable)
+      .where(ne(usersTable.id, "user_scratch"))
+      .orderBy(usersTable.createdAt);
     res.json({ users: users.map(formatUser) });
   } catch (err) {
     req.log.error({ err }, "Failed to list users");

@@ -14,4 +14,6 @@ export interface ChatRequest {
   portfolioContext?: boolean;
   /** Persona override for the AI co-investor. */
   agentMode?: ChatRequestAgentMode;
+  /** Human-readable name for the signed-in user (e.g. workstation login). The assistant should address this person, not the demo profile name alone. */
+  displayName?: string;
 }

@@ -3,6 +3,7 @@ import { logger } from "./logger";
 import { runSafetyGuard } from "./safety-guard";
 import { classifyIntent, type AgentName } from "./intent-classifier";
 import { getOpenAI } from "./openai-client";
+import { humanAddressingInstructions } from "./user-addressing";
 import { runPortfolioHealthAgent, type HoldingInput, type UserContext } from "./portfolio-health-agent";
 
 export type AgentMode = "normal" | "coach" | "analyst" | "risk_officer" | "strategist";
@@ -170,7 +171,14 @@ async function handlePersonaChat(
     ? `\nCurrent holdings: ${input.holdings.map((h) => `${h.ticker} (${h.shares} shares @ $${h.avgCostBasis})`).join(", ")}.`
     : "";
   const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: "system", content: persona + contextInfo + holdingsInfo },
+    {
+      role: "system",
+      content:
+        persona +
+        humanAddressingInstructions(input.userContext?.name) +
+        contextInfo +
+        holdingsInfo,
+    },
     ...(input.priorMessages ?? []).slice(-8).map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,
@@ -228,7 +236,10 @@ async function handleGeneralChat(
     : "";
 
   const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: "system", content: sysPrompt + contextInfo },
+    {
+      role: "system",
+      content: sysPrompt + humanAddressingInstructions(input.userContext?.name) + contextInfo,
+    },
     ...(input.priorMessages ?? []).slice(-8).map((m) => ({
       role: m.role as "user" | "assistant",
       content: m.content,

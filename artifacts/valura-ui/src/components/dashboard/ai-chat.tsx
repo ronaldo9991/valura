@@ -22,19 +22,36 @@ const AGENT_MODES: { value: AgentMode; label: string; desc: string; Icon: React.
 type Props = {
   userId: string;
   novice?: boolean;
+  /** Human-readable name for greetings & AI context (workstation or demo profile). */
+  displayName?: string | null;
+  /** Initial AI persona (users can still change via the picker). */
+  defaultAgentMode?: AgentMode;
+  /** Optional quick prompts when the chat is empty (overrides novice/pro chips). */
+  starterChips?: string[];
   pendingPrompt?: string | null;
   onPendingPromptConsumed?: () => void;
   portfolioContext?: { topHolding?: string | null; holdingsCount?: number; riskFlag?: string };
 };
 
-export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, novice = false, pendingPrompt, onPendingPromptConsumed, portfolioContext }, ref) {
+export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({
+  userId,
+  novice = false,
+  displayName,
+  defaultAgentMode = "normal",
+  starterChips,
+  pendingPrompt,
+  onPendingPromptConsumed,
+  portfolioContext,
+}, ref) {
+  const greet = displayName?.trim()?.split(/\s+/)[0] ?? null;
+
   const { messages, isStreaming, sendMessage, setMessages, stopStream } = useAiStream();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const [activeConvoId, setActiveConvoId] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [agentMode, setAgentMode] = useState<AgentMode>("normal");
+  const [agentMode, setAgentMode] = useState<AgentMode>(defaultAgentMode);
   const [modeOpen, setModeOpen] = useState(false);
 
   const { data: convos } = useGetConversations(userId, { query: { enabled: !!userId, queryKey: getGetConversationsQueryKey(userId) } });
@@ -58,27 +75,27 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
   useImperativeHandle(ref, () => ({
     send: (text: string) => {
       if (!text.trim() || isStreaming) return;
-      sendMessage(userId, text, activeConvoId || undefined, agentMode);
+      sendMessage(userId, text, activeConvoId || undefined, agentMode, displayName);
     }
-  }), [userId, activeConvoId, sendMessage, isStreaming, agentMode]);
+  }), [userId, activeConvoId, sendMessage, isStreaming, agentMode, displayName]);
 
   // Consume external pending prompt deterministically once the chat is mounted and idle.
   useEffect(() => {
     if (!pendingPrompt || isStreaming) return;
-    sendMessage(userId, pendingPrompt, activeConvoId || undefined, agentMode);
+    sendMessage(userId, pendingPrompt, activeConvoId || undefined, agentMode, displayName);
     onPendingPromptConsumed?.();
-  }, [pendingPrompt, isStreaming, userId, activeConvoId, sendMessage, onPendingPromptConsumed, agentMode]);
+  }, [pendingPrompt, isStreaming, userId, activeConvoId, sendMessage, onPendingPromptConsumed, agentMode, displayName]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isStreaming) return;
-    sendMessage(userId, input, activeConvoId || undefined, agentMode);
+    sendMessage(userId, input, activeConvoId || undefined, agentMode, displayName);
     setInput("");
   };
 
   const handleChip = (text: string) => {
     if (isStreaming) return;
-    sendMessage(userId, text, activeConvoId || undefined, agentMode);
+    sendMessage(userId, text, activeConvoId || undefined, agentMode, displayName);
   };
 
   const activeMode = AGENT_MODES.find((m) => m.value === agentMode) ?? AGENT_MODES[0];
@@ -100,7 +117,7 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
     "Show alpha attribution by sector",
   ];
 
-  const chips = novice ? noviceChips : proChips;
+  const chips = starterChips ?? (novice ? noviceChips : proChips);
 
   return (
     <div className="flex flex-col h-full bg-card relative overflow-hidden">
@@ -113,7 +130,9 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
           </div>
           <div className="min-w-0">
             <h2 className="font-mono text-sm font-bold truncate">Valura Co-Investor</h2>
-            <p className="text-[9px] text-primary font-mono uppercase tracking-widest truncate">{novice ? "Beginner-friendly · Online" : "Co-Investor · Online"}</p>
+            <p className="text-[9px] text-primary font-mono uppercase tracking-widest truncate">
+              {greet ? `Personal desk · ${greet}` : novice ? "Beginner-friendly · Online" : "Co-Investor · Online"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -159,9 +178,11 @@ export const AiChat = forwardRef<AiChatHandle, Props>(function AiChat({ userId, 
               <div className="space-y-2 max-w-[260px]">
                 <p className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">{novice ? "Hi, I'm Valura" : "Co-Investor Online"}</p>
                 <p className="text-sm text-foreground/85 leading-relaxed">
-                  {novice
-                    ? "I'm your AI co-investor. Ask me anything about your portfolio — I'll explain it like a friend, not a finance textbook."
-                    : "Real-time portfolio intelligence. Ask about positions, risk, alpha, or rebalancing strategies."}
+                  {greet
+                    ? `${greet} — I'm your Valura AI desk. Ask me anything about investing or your portfolio; I'll answer as your assistant, not as you.`
+                    : novice
+                      ? "I'm your AI co-investor. Ask me anything about your portfolio — I'll explain it like a friend, not a finance textbook."
+                      : "Real-time portfolio intelligence. Ask about positions, risk, alpha, or rebalancing strategies."}
                 </p>
               </div>
             </div>

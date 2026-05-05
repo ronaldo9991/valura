@@ -29,7 +29,7 @@ router.post("/ai/chat", aiLimiter, async (req, res) => {
       return;
     }
 
-    const { userId, message, conversationId, portfolioContext, agentMode } = parsed.data;
+    const { userId, message, conversationId, portfolioContext, agentMode, displayName } = parsed.data;
 
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
     if (!user) {
@@ -38,6 +38,8 @@ router.post("/ai/chat", aiLimiter, async (req, res) => {
       res.end();
       return;
     }
+
+    const resolvedDisplayName = displayName?.trim() || user.name;
 
     let convId = conversationId;
     if (!convId) {
@@ -76,7 +78,7 @@ router.post("/ai/chat", aiLimiter, async (req, res) => {
         priorMessages: priorMessages.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
         userContext: {
           id: user.id,
-          name: user.name,
+          name: resolvedDisplayName,
           riskProfile: user.riskProfile,
           currency: user.currency,
           investmentGoal: user.investmentGoal,

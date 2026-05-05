@@ -41,6 +41,8 @@ export * from "./portfolioHealthReport";
 export * from "./portfolioSummary";
 export * from "./portfolioSummaryAllocationByAssetItem";
 export * from "./portfolioSummaryAllocationBySectorItem";
+export * from "./scenarioInsightRequest";
+export * from "./scenarioInsightResponse";
 export * from "./searchSymbols200";
 export * from "./searchSymbolsParams";
 export * from "./symbolSearchResult";

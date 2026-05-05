@@ -16,7 +16,8 @@
     "bundle": "node ./scripts/bundle.mjs",
     "build": "pnpm run typecheck && pnpm run build:libs && pnpm run build:ui && pnpm run build:api && pnpm run bundle",
     "start": "node --enable-source-maps dist/server/index.mjs",
-    "migrate": "pnpm --filter @workspace/db run migrate"
+    "migrate": "pnpm --filter @workspace/db run migrate",
+    "desk": "bash ./scripts/pick-desk.sh"
   },
   "private": true,
   "devDependencies": {

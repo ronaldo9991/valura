@@ -1,12 +1,22 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowRight, ShieldCheck, Sparkles, GraduationCap, BadgeCheck } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, GraduationCap, BadgeCheck, PenLine } from "lucide-react";
 import { useListUsers } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ModeToggle } from "@/components/mode-toggle";
-import { setStoredUserId, getStoredUserId } from "@/lib/auth";
+import {
+  setStoredUserId,
+  getStoredUserId,
+  setStoredDisplayName,
+  getStoredDisplayName,
+  SCRATCH_USER_ID,
+} from "@/lib/auth";
+import { useLocalSignInName } from "@/hooks/use-local-sign-in-name";
 
 const PROFILE_BLURBS: Record<string, { tone: string; icon: typeof Sparkles; tag: string }> = {
   conservative: { tone: "Steady, low-volatility approach. Great for first-time investors.", icon: ShieldCheck, tag: "Beginner-Friendly" },
@@ -17,13 +27,44 @@ const PROFILE_BLURBS: Record<string, { tone: string; icon: typeof Sparkles; tag:
 export default function Login() {
   const [, setLocation] = useLocation();
   const { data, isLoading } = useListUsers();
+  const { data: localId } = useLocalSignInName();
+
+  const [yourName, setYourName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   useEffect(() => {
     if (getStoredUserId()) setLocation("/dashboard");
   }, [setLocation]);
 
-  const handlePick = (userId: string) => {
-    setStoredUserId(userId);
+  useEffect(() => {
+    const saved = getStoredDisplayName();
+    if (saved) setYourName(saved);
+  }, []);
+
+  const requireName = (): boolean => {
+    if (!yourName.trim()) {
+      setNameError("Enter your name so Valura can address you correctly.");
+      return false;
+    }
+    setNameError(null);
+    return true;
+  };
+
+  const persistName = () => {
+    setStoredDisplayName(yourName.trim());
+  };
+
+  const startScratchPortfolio = () => {
+    if (!requireName()) return;
+    persistName();
+    setStoredUserId(SCRATCH_USER_ID);
+    setLocation("/build");
+  };
+
+  const handlePickDemo = (demoUserId: string) => {
+    if (!requireName()) return;
+    persistName();
+    setStoredUserId(demoUserId);
     setLocation("/dashboard");
   };
 
@@ -43,18 +84,79 @@ export default function Login() {
         <ModeToggle />
       </header>
 
-      <main className="relative z-10 max-w-5xl mx-auto px-6 lg:px-12 py-12 lg:py-20">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-2xl mx-auto mb-12">
+      <main className="relative z-10 max-w-5xl mx-auto px-6 lg:px-12 py-12 lg:py-16">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center max-w-2xl mx-auto mb-10">
           <Badge variant="outline" className="rounded-none border-gold-hairline text-primary font-mono text-[10px] uppercase tracking-widest mb-6 px-3 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-primary mr-2 animate-pulse" /> Sign in to your desk
           </Badge>
           <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-            Welcome to <span className="bg-clip-text text-transparent bg-gold-metal">your AI co-investor</span>.
+            Welcome to <span className="bg-clip-text text-transparent bg-gold-metal">Valura</span>
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Choose a client profile below to enter the dashboard. Each profile comes with real holdings, real-time prices, and an AI desk that explains everything in plain English.
+            Enter <span className="text-foreground font-medium">your name</span> first — the AI desk will speak to{" "}
+            <span className="text-foreground font-medium">you</span>, not as you. Then start from scratch or pick a sample portfolio for practice.
           </p>
         </motion.div>
+
+        <div className="max-w-lg mx-auto mb-12 space-y-3 text-left">
+          <Label htmlFor="your-name" className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">
+            Your name
+          </Label>
+          <Input
+            id="your-name"
+            value={yourName}
+            onChange={(e) => {
+              setYourName(e.target.value);
+              if (nameError) setNameError(null);
+            }}
+            placeholder="e.g. Alex Rivera"
+            className="rounded-none bg-card border-border h-11"
+            autoComplete="name"
+            data-testid="input-your-name"
+          />
+          {nameError ? <p className="text-xs text-destructive font-mono">{nameError}</p> : null}
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            This is how Valura greets you and how the assistant routes context — separate from any sample profile you might pick below.
+          </p>
+          {localId?.signInName ? (
+            <p className="text-[10px] font-mono border border-border/80 bg-card/50 px-3 py-2 text-muted-foreground">
+              Dev workstation user detected: <span className="text-foreground">{localId.signInName}</span> — you can still type the name you want Valura to use.
+            </p>
+          ) : null}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.05 }}
+          className="max-w-2xl mx-auto mb-14 glass-panel border border-gold-hairline p-6 lg:p-8"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 shrink-0 border border-gold-hairline bg-primary/10 flex items-center justify-center">
+              <PenLine className="w-5 h-5 text-primary" />
+            </div>
+            <div className="space-y-4 flex-1 min-w-0">
+              <div>
+                <h2 className="text-sm font-bold uppercase tracking-widest mb-1">Build my own portfolio</h2>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Sign in <span className="text-foreground">without</span> a sample co-investor persona. You get an empty book and $0 cash to start — add holdings when you are ready. The AI desk still helps with education and planning.
+                </p>
+              </div>
+              <Button
+                type="button"
+                className="rounded-none font-mono text-[11px] uppercase tracking-widest"
+                onClick={startScratchPortfolio}
+                data-testid="button-start-scratch"
+              >
+                Continue with empty portfolio
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="text-center mb-8">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Or practice with a sample book</span>
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading ? (
@@ -78,7 +180,8 @@ export default function Login() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.05 * i }}
                   whileHover={{ y: -4 }}
-                  onClick={() => handlePick(u.id)}
+                  type="button"
+                  onClick={() => handlePickDemo(u.id)}
                   className="group glass-panel border border-border hover:border-gold-hairline p-6 text-left transition-all relative overflow-hidden"
                   data-testid={`profile-${u.id}`}
                 >
@@ -109,7 +212,7 @@ export default function Login() {
 
                   <div className="flex items-center justify-between pt-4 border-t border-border/50 relative z-10">
                     <div>
-                      <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Portfolio</div>
+                      <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Sample portfolio</div>
                       <div className="font-mono text-sm font-bold">${u.totalPortfolioValue.toLocaleString()}</div>
                     </div>
                     <div className="flex items-center gap-2 text-primary text-xs font-mono uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
@@ -126,8 +229,9 @@ export default function Login() {
           )}
         </div>
 
-        <div className="mt-12 text-center text-xs text-muted-foreground font-mono">
-          Demo profiles are pre-loaded with real holdings. Real-time prices via Yahoo Finance · AI insights via GPT-4o.
+        <div className="mt-12 text-center text-xs text-muted-foreground font-mono max-w-2xl mx-auto leading-relaxed">
+          Sample profiles use pre-loaded holdings for practice. Your name always identifies <span className="text-foreground">you</span> to the assistant — it is not the sample persona name.
+          Real-time prices via Yahoo Finance · AI desk uses OpenAI when configured.
         </div>
       </main>
     </div>

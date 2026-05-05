@@ -9,8 +9,10 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import ChronosPage from "@/pages/chronos";
+import PathfinderPage from "@/pages/pathfinder";
 import Login from "@/pages/login";
-import { getStoredUserId } from "@/lib/auth";
+import { getStoredUserId, SCRATCH_USER_ID } from "@/lib/auth";
+import PortfolioBuilder from "@/pages/portfolio-builder";
 
 const queryClient = new QueryClient();
 
@@ -32,12 +34,35 @@ function ProtectedChronos() {
   return <ChronosPage />;
 }
 
+function ProtectedPathfinder() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    if (!getStoredUserId()) setLocation("/login");
+  }, [setLocation]);
+  if (!getStoredUserId()) return null;
+  return <PathfinderPage />;
+}
+
+function ProtectedPortfolioBuilder() {
+  const [, setLocation] = useLocation();
+  useEffect(() => {
+    const id = getStoredUserId();
+    if (!id) setLocation("/login");
+    else if (id !== SCRATCH_USER_ID) setLocation("/dashboard");
+  }, [setLocation]);
+  const id = getStoredUserId();
+  if (!id || id !== SCRATCH_USER_ID) return null;
+  return <PortfolioBuilder />;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/dashboard" component={ProtectedDashboard} />
+      <Route path="/build" component={ProtectedPortfolioBuilder} />
+      <Route path="/pathfinder" component={ProtectedPathfinder} />
       <Route path="/chronos" component={ProtectedChronos} />
       <Route component={NotFound} />
     </Switch>

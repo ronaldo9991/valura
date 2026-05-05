@@ -34,6 +34,8 @@ import type {
   Portfolio,
   PortfolioHealthReport,
   PortfolioSummary,
+  ScenarioInsightRequest,
+  ScenarioInsightResponse,
   SearchSymbols200,
   SearchSymbolsParams,
   UserProfile,
@@ -1156,6 +1158,96 @@ export const useAiChat = <
   TContext
 > => {
   return useMutation(getAiChatMutationOptions(options));
+};
+
+/**
+ * @summary AI narrative for Pathfinder scenario lab (illustrative, educational)
+ */
+export const getPathfinderScenarioInsightUrl = () => {
+  return `/api/pathfinder/scenario-insight`;
+};
+
+export const pathfinderScenarioInsight = async (
+  scenarioInsightRequest: ScenarioInsightRequest,
+  options?: RequestInit,
+): Promise<ScenarioInsightResponse> => {
+  return customFetch<ScenarioInsightResponse>(
+    getPathfinderScenarioInsightUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(scenarioInsightRequest),
+    },
+  );
+};
+
+export const getPathfinderScenarioInsightMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pathfinderScenarioInsight>>,
+    TError,
+    { data: BodyType<ScenarioInsightRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pathfinderScenarioInsight>>,
+  TError,
+  { data: BodyType<ScenarioInsightRequest> },
+  TContext
+> => {
+  const mutationKey = ["pathfinderScenarioInsight"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pathfinderScenarioInsight>>,
+    { data: BodyType<ScenarioInsightRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return pathfinderScenarioInsight(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PathfinderScenarioInsightMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pathfinderScenarioInsight>>
+>;
+export type PathfinderScenarioInsightMutationBody =
+  BodyType<ScenarioInsightRequest>;
+export type PathfinderScenarioInsightMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary AI narrative for Pathfinder scenario lab (illustrative, educational)
+ */
+export const usePathfinderScenarioInsight = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pathfinderScenarioInsight>>,
+    TError,
+    { data: BodyType<ScenarioInsightRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pathfinderScenarioInsight>>,
+  TError,
+  { data: BodyType<ScenarioInsightRequest> },
+  TContext
+> => {
+  return useMutation(getPathfinderScenarioInsightMutationOptions(options));
 };
 
 /**

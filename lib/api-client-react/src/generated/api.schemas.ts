@@ -268,6 +268,25 @@ export interface ChatRequest {
   portfolioContext?: boolean;
   /** Persona override for the AI co-investor. */
   agentMode?: ChatRequestAgentMode;
+  /** Human-readable name for the signed-in user (e.g. workstation login). The assistant should address this person, not the demo profile name alone. */
+  displayName?: string;
+}
+
+export interface ScenarioInsightRequest {
+  /** Monthly contribution amount */
+  monthly: number;
+  years: number;
+  /** Assumed annual return percentage for illustration only */
+  annualReturnPct: number;
+  /** Server- or client-calculated balance from the assumption sliders */
+  hypotheticalEndingBalance: number;
+  currency?: string;
+  /** Optional first name or full name for greetings in the narrative */
+  displayName?: string;
+}
+
+export interface ScenarioInsightResponse {
+  narrative: string;
 }
 
 export interface Conversation {

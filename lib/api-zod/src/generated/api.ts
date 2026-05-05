@@ -354,6 +354,41 @@ export const AiChatBody = zod.object({
     .enum(["normal", "coach", "analyst", "risk_officer", "strategist"])
     .optional()
     .describe("Persona override for the AI co-investor."),
+  displayName: zod
+    .string()
+    .optional()
+    .describe(
+      "Human-readable name for the signed-in user (e.g. workstation login). The assistant should address this person, not the demo profile name alone.",
+    ),
+});
+
+/**
+ * @summary AI narrative for Pathfinder scenario lab (illustrative, educational)
+ */
+export const pathfinderScenarioInsightBodyCurrencyDefault = `USD`;
+
+export const PathfinderScenarioInsightBody = zod.object({
+  monthly: zod.number().describe("Monthly contribution amount"),
+  years: zod.number(),
+  annualReturnPct: zod
+    .number()
+    .describe("Assumed annual return percentage for illustration only"),
+  hypotheticalEndingBalance: zod
+    .number()
+    .describe(
+      "Server- or client-calculated balance from the assumption sliders",
+    ),
+  currency: zod.string().default(pathfinderScenarioInsightBodyCurrencyDefault),
+  displayName: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional first name or full name for greetings in the narrative",
+    ),
+});
+
+export const PathfinderScenarioInsightResponse = zod.object({
+  narrative: zod.string(),
 });
 
 /**

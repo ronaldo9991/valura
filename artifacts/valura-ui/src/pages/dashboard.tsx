@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   TrendingUp, TrendingDown, ShieldAlert, PieChart, Activity, Briefcase, Zap,
   AlertTriangle, AlertCircle, Info, BrainCircuit, GraduationCap, Sparkles,
-  PanelRightClose, PanelRightOpen, LogOut,
+  PanelRightClose, PanelRightOpen, LogOut, Beaker,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +26,8 @@ import {
   useGetUser, useGetPortfolio, useGetPortfolioSummary, useGetPortfolioHealth, useGetMarketMovers,
   getGetUserQueryKey, getGetPortfolioQueryKey, getGetPortfolioSummaryQueryKey, getGetPortfolioHealthQueryKey,
 } from "@workspace/api-client-react";
-import { getStoredUserId, clearStoredUserId } from "@/lib/auth";
+import { clearSession, getStoredUserId, resolveSessionDisplayName, getStoredDisplayName, SCRATCH_USER_ID } from "@/lib/auth";
+import { useLocalSignInName } from "@/hooks/use-local-sign-in-name";
 
 const NOVICE_KEY = "valura.noviceMode";
 const SIDEBAR_KEY = "valura.aiSidebarOpen";
@@ -49,6 +50,14 @@ export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetPortfolioSummary(userId, { query: { enabled: !!userId, queryKey: getGetPortfolioSummaryQueryKey(userId) } });
   const { data: health, isLoading: isLoadingHealth } = useGetPortfolioHealth(userId, { query: { enabled: !!userId, queryKey: getGetPortfolioHealthQueryKey(userId) } });
   const { data: movers, isLoading: isLoadingMovers } = useGetMarketMovers();
+  const { data: localIdentity } = useLocalSignInName();
+
+  const aiDisplayName = resolveSessionDisplayName(user?.name, localIdentity?.signInName);
+
+  const greetName = useMemo(() => {
+    const raw = aiDisplayName.trim();
+    return raw.split(/\s+/)[0] || "there";
+  }, [aiDisplayName]);
 
   // Scroll spy
   useEffect(() => {
@@ -77,7 +86,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => { clearStoredUserId(); setLocation("/login"); };
+  const handleLogout = () => { clearSession(); setLocation("/login"); };
 
   const askAi = (prompt: string) => {
     setAiOpen(true);
@@ -122,9 +131,23 @@ export default function Dashboard() {
               <div className="space-y-2">
                 <div className="text-[10px] font-mono uppercase tracking-widest text-muted-foreground">Signed in as</div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-sm truncate">{user.name}</span>
+                  <span className="font-semibold text-sm truncate">
+                    {aiDisplayName || user.name}
+                  </span>
                   <Badge variant="outline" className="border-gold-hairline text-gold font-mono text-[9px] uppercase rounded-none shrink-0">{user.riskProfile}</Badge>
                 </div>
+                {userId === SCRATCH_USER_ID ? (
+                  <div className="text-[10px] text-muted-foreground font-mono leading-snug space-y-1">
+                    <span className="block">Paper portfolio — build positions in the simulation lab.</span>
+                    <Link href="/build" className="inline-flex items-center gap-1 text-primary hover:underline font-semibold">
+                      <Beaker className="w-3 h-3" /> Open simulation lab
+                    </Link>
+                  </div>
+                ) : (getStoredDisplayName() || localIdentity?.signInName) ? (
+                  <div className="text-[10px] text-muted-foreground font-mono truncate" title={user.name}>
+                    Sample book · {user.name}
+                  </div>
+                ) : null}
                 <div className="text-[10px] text-muted-foreground font-mono">
                   KYC: <span className={user.kycStatus === 'approved' ? 'text-emerald-500' : 'text-amber-500'}>{user.kycStatus}</span>
                 </div>
@@ -154,6 +177,21 @@ export default function Dashboard() {
               </div>
             </button>
           </div>
+
+          {userId === SCRATCH_USER_ID && (
+            <div className="px-5 pb-4 border-b border-border shrink-0">
+              <Link
+                href="/build"
+                className="flex items-center gap-2 w-full px-3 py-2.5 border border-gold-hairline bg-primary/5 text-xs font-semibold uppercase tracking-wider hover:bg-primary/10 transition-colors"
+              >
+                <Beaker className="w-4 h-4 text-primary" />
+                Simulation lab
+              </Link>
+              <p className="text-[9px] font-mono text-muted-foreground mt-2 px-1 leading-snug">
+                Paper cash, practice trades, AI coach
+              </p>
+            </div>
+          )}
 
           <ScrollArea className="flex-1 px-3 py-4">
             <div className="space-y-0.5">
@@ -201,7 +239,7 @@ export default function Dashboard() {
               <div className="flex items-end justify-between flex-wrap gap-3">
                 <div>
                   <h2 className="text-2xl font-bold tracking-tight flex items-center gap-3">
-                    {novice ? `Hi ${user?.name?.split(" ")[0] ?? "there"} — here's your money today` : "Portfolio Command"}
+                    {novice ? `Hi ${greetName} — here's your money today` : `Hi ${greetName} — portfolio command`}
                     {isLoadingSummary && <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />}
                   </h2>
                   <p className="text-muted-foreground text-sm mt-1 font-mono">
@@ -209,6 +247,27 @@ export default function Dashboard() {
                   </p>
                 </div>
               </div>
+
+              {userId === SCRATCH_USER_ID && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="border border-primary/30 bg-primary/[0.06] p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <Beaker className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <div className="text-sm font-semibold">Simulation lab</div>
+                      <p className="text-xs text-muted-foreground font-mono mt-1">
+                        Set paper cash, place practice trades, and ask the AI coach to stress-test your book.
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild className="rounded-none shrink-0 w-full sm:w-auto">
+                    <Link href="/build">Open lab</Link>
+                  </Button>
+                </motion.div>
+              )}
 
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <StatCard
@@ -545,7 +604,7 @@ export default function Dashboard() {
               className="border-l border-gold-hairline bg-card flex flex-col z-20 shrink-0 relative shadow-[-10px_0_30px_rgba(0,0,0,0.5)] overflow-hidden"
             >
               <div style={{ width: 384 }} className="h-full">
-                <AiChat ref={aiRef} userId={userId} novice={novice} pendingPrompt={pendingPrompt} onPendingPromptConsumed={() => setPendingPrompt(null)} portfolioContext={{ topHolding: topHoldingTicker, holdingsCount: summary?.holdingsCount, riskFlag: health?.concentrationRisk?.flag }} />
+                <AiChat ref={aiRef} userId={userId} novice={novice} displayName={aiDisplayName} pendingPrompt={pendingPrompt} onPendingPromptConsumed={() => setPendingPrompt(null)} portfolioContext={{ topHolding: topHoldingTicker, holdingsCount: summary?.holdingsCount, riskFlag: health?.concentrationRisk?.flag }} />
               </div>
             </motion.aside>
           )}
