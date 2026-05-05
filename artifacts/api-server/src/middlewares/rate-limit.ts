@@ -13,6 +13,8 @@ export const apiLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   keyGenerator: userKey,
+  /** Probes (e.g. Railway) must never consume quota or trip validation edge cases. */
+  skip: (req) => req.path === "/healthz" || req.originalUrl.startsWith("/api/healthz"),
   message: {
     error: "rate_limited",
     message: "Too many requests. Please slow down.",
