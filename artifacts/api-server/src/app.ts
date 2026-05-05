@@ -7,63 +7,69 @@ import router from "./routes";
 import { apiLimiter } from "./middlewares/rate-limit";
 import { logger } from "./lib/logger";
 
-const app: Express = express();
+/** Full middleware + API + static SPA (call after DB migrations in production bootstrap). */
+export function attachMainApplication(app: Express): void {
+  const isProduction = process.env.NODE_ENV === "production";
+  const publicUrl = process.env.PUBLIC_URL;
 
-const isProduction = process.env.NODE_ENV === "production";
-const publicUrl = process.env.PUBLIC_URL;
+  app.set("trust proxy", 1);
 
-app.set("trust proxy", 1);
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
-app.use(
-  helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-  }),
-);
+  const corsOrigin = isProduction
+    ? publicUrl
+      ? [publicUrl]
+      : false
+    : ["http://localhost:5173", "http://localhost:5174"];
 
-const corsOrigin = isProduction
-  ? publicUrl
-    ? [publicUrl]
-    : false
-  : ["http://localhost:5173", "http://localhost:5174"];
+  app.use(
+    cors({
+      origin: corsOrigin,
+      credentials: true,
+    }),
+  );
 
-app.use(
-  cors({
-    origin: corsOrigin,
-    credentials: true,
-  }),
-);
-
-app.use(
-  pinoHttp({
-    logger,
-    serializers: {
-      req(req) {
-        return {
-          id: req.id,
-          method: req.method,
-          url: req.url?.split("?")[0],
-        };
+  app.use(
+    pinoHttp({
+      logger,
+      serializers: {
+        req(req) {
+          return {
+            id: req.id,
+            method: req.method,
+            url: req.url?.split("?")[0],
+          };
+        },
+        res(res) {
+          return {
+            statusCode: res.statusCode,
+          };
+        },
       },
-      res(res) {
-        return {
-          statusCode: res.statusCode,
-        };
-      },
-    },
-  }),
-);
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    }),
+  );
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", apiLimiter, router);
+  app.use("/api", apiLimiter, router);
 
-if (isProduction) {
-  const publicDir = path.resolve(__dirname, "../public");
-  app.use(express.static(publicDir, { index: false, maxAge: "1h" }));
-  app.get(/^\/(?!api).*/, (_req, res) => {
-    res.sendFile(path.join(publicDir, "index.html"));
-  });
+  if (isProduction) {
+    const publicDir = path.resolve(__dirname, "../public");
+    app.use(express.static(publicDir, { index: false, maxAge: "1h" }));
+    app.get(/^\/(?!api).*/, (_req, res) => {
+      res.sendFile(path.join(publicDir, "index.html"));
+    });
+  }
 }
 
-export default app;
+/** Single-shot app for tests / tooling. */
+export default function createApplication(): Express {
+  const app = express();
+  attachMainApplication(app);
+  return app;
+}
