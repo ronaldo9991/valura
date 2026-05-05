@@ -168,8 +168,18 @@ export default function Login() {
                 <Skeleton className="h-4 w-2/3" />
               </div>
             ))
+          ) : !data?.users?.length ? (
+            <div className="col-span-full glass-panel border border-amber-500/30 bg-amber-500/5 p-6 text-center space-y-2">
+              <p className="text-sm font-semibold text-foreground">No sample portfolios loaded</p>
+              <p className="text-xs text-muted-foreground font-mono leading-relaxed max-w-xl mx-auto">
+                The API returned zero demo users — usually the database has not run migration{" "}
+                <code className="text-primary">0003_demo_users_seed</code> yet. On Railway, redeploy after migrations apply, or run{" "}
+                <code className="text-primary">pnpm --filter @workspace/db run migrate</code> against your{" "}
+                <code className="text-primary">DATABASE_URL</code>.
+              </p>
+            </div>
           ) : (
-            data?.users.map((u, i) => {
+            data.users.map((u, i) => {
               const cfg = PROFILE_BLURBS[u.riskProfile] ?? PROFILE_BLURBS.moderate;
               const Icon = cfg.icon;
               const isNovice = u.riskProfile === "conservative" || u.riskProfile === "moderate";
@@ -226,7 +236,8 @@ export default function Login() {
                 </motion.button>
               );
             })
-          )}
+          )
+        }
         </div>
 
         <div className="mt-12 text-center text-xs text-muted-foreground font-mono max-w-2xl mx-auto leading-relaxed">
