@@ -1,13 +1,13 @@
 import express, { type Express } from "express";
-import path from "node:path";
 import cors from "cors";
 import helmet from "helmet";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { apiLimiter } from "./middlewares/rate-limit";
 import { logger } from "./lib/logger";
+import { attachProductionStatic } from "./production-static.js";
 
-/** Full middleware + API + static SPA (call after DB migrations in production bootstrap). */
+/** Full middleware + API (static SPA is mounted earlier from `production-static`). */
 export function attachMainApplication(app: Express): void {
   const isProduction = process.env.NODE_ENV === "production";
   const publicUrl = process.env.PUBLIC_URL;
@@ -57,19 +57,12 @@ export function attachMainApplication(app: Express): void {
   app.use(express.urlencoded({ extended: true }));
 
   app.use("/api", apiLimiter, router);
-
-  if (isProduction) {
-    const publicDir = path.resolve(__dirname, "../public");
-    app.use(express.static(publicDir, { index: false, maxAge: "1h" }));
-    app.get(/^\/(?!api).*/, (_req, res) => {
-      res.sendFile(path.join(publicDir, "index.html"));
-    });
-  }
 }
 
 /** Single-shot app for tests / tooling. */
 export default function createApplication(): Express {
   const app = express();
+  attachProductionStatic(app);
   attachMainApplication(app);
   return app;
 }

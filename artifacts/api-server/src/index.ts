@@ -1,6 +1,7 @@
 import express, { type Express, type Response } from "express";
 import type { Server } from "node:http";
 import { logger } from "./lib/logger";
+import { attachProductionStatic } from "./production-static.js";
 
 const rawPort = process.env.PORT ?? "8080";
 const port = Number.parseInt(String(rawPort).trim(), 10);
@@ -20,6 +21,8 @@ const okLive = (_req: unknown, res: Response) => {
 /** Liveness — no DB. Some proxies probe `/healthz` instead of `/api/healthz`. */
 app.get("/healthz", okLive);
 app.get("/api/healthz", okLive);
+
+attachProductionStatic(app);
 
 const server: Server = app.listen(port, host, () => {
   logger.info(
@@ -45,7 +48,7 @@ async function bootstrap(expressApp: Express) {
   } catch (err) {
     logger.error(
       { err },
-      "[start] migrations/bootstrap failed — still serving liveness only. Link Postgres and set DATABASE_URL on this Railway service, then redeploy or restart.",
+      "[start] migrations/bootstrap failed — SPA + liveness still served; API routes missing until Postgres is linked and service restarted.",
     );
     if (process.env.STRICT_BOOT === "1") {
       process.exit(1);
