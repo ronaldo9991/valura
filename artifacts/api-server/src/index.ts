@@ -3,18 +3,20 @@ import app from "./app";
 import { logger } from "./lib/logger";
 
 const port = Number(process.env.PORT ?? 8080);
+/** Railway/Docker expect the process to listen on all interfaces, not only loopback. */
+const host = process.env.HOST ?? "0.0.0.0";
 
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${process.env.PORT}"`);
 }
 
-const server = app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+const server = app.listen(port, host, () => {
+  logger.info({ port, host }, "Server listening");
+});
 
-  logger.info({ port }, "Server listening");
+server.on("error", (err) => {
+  logger.error({ err }, "Error listening on port");
+  process.exit(1);
 });
 
 const SHUTDOWN_TIMEOUT_MS = 15_000;
